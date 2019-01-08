@@ -1,0 +1,689 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.alibaba.dao.AdminMapper">
+  
+  	<resultMap id="base_resultMap" type="com.alibaba.pojo.User">
+		<id column="id" property="id" />
+		<result column="username" property="username" />
+		<result column="account" property="account" />
+		<result column="password" property="password" />
+		<result column="status" property="status" />
+		<result column="phone" property="phone" />
+		<!-- 门店信息 -->
+		<collection property="roles" ofType="com.alibaba.pojo.Role">
+			<id column="stores_id" property="stores_id" />
+			<result column="stores_name" property="stores_name" />
+			<result column="stores_city" property="stores_city" />
+			<!-- 权限信息 -->
+			<collection property="relations" ofType="com.alibaba.pojo.Relation">
+				<id column="relid" property="relid" />
+				<result column="relationName" property="relationName" />
+			</collection>
+		</collection>
+	</resultMap>
+	
+	<!-- 门店信息 -->
+	<resultMap id="base_resultMap2" type="com.alibaba.pojo.Role">
+		<id column="stores_id" property="stores_id" />
+		<result column="stores_name" property="stores_name" />
+		<!-- 权限信息 -->
+		<collection property="relations" ofType="com.alibaba.pojo.Relation">
+			<id column="relid" property="relid" />
+			<result column="relationName" property="relationName" />
+		</collection>
+	</resultMap> 
+	
+	<!-- 终端机查询 -->
+	<resultMap id="base_resultMap3" type="com.alibaba.pojo.User">
+		<id column="id" property="id" />
+		<result column="username" property="username" />
+		<result column="account" property="account" />
+		<result column="phone" property="phone" />
+		<collection property="roles" ofType="com.alibaba.pojo.Role">
+			<result column="stores_id" property="stores_id" />
+			<result column="stores_city" property="stores_city" />
+			<result column="frequency" property="frequency" />
+			<result column="stores_name" property="stores_name" />
+			<collection property="machines" ofType="com.alibaba.pojo.Machine">
+				<result column="machine_id" property="machine_id" />
+				<result column="machine_name" property="machine_name" />
+				<result column="status" property="status" />
+			</collection>
+		</collection>
+	</resultMap>
+	
+	<!-- 修改终端机在线状态 -->
+	<update id="updateMachineStatusonLine" parameterType="com.alibaba.util.ParamInfo">
+		update machine set
+		status = 1
+		where machine_id in( ${content} )
+	</update>
+	
+	<!-- 修改终端机离线状态 -->
+	<update id="updateMachineStatusoffLine" parameterType="com.alibaba.util.ParamInfo">
+		update machine set
+		status = 0
+		where machine_id in( ${content} )
+	</update>
+	
+	<!-- 查询所有终端机 -->
+	<select id="getMachineIds" resultType="java.lang.String">
+		select machine_id from machine
+	</select>
+	
+	<!-- 查询所有门店数据 -->
+	<select id="getStoresList" resultType="com.alibaba.pojo.Role">
+		select 
+			id,
+			GROUP_CONCAT(stores_id) as stores_id,
+			GROUP_CONCAT(stores_name) as stores_name,
+			stores_city,
+			GROUP_CONCAT(stores_address) as stores_address
+		from stores
+		GROUP BY stores_city
+	</select>
+	
+	<!-- 查询所有用户的门店权限信息 -->
+	<select id="listUserRoleRelationsInfo" resultMap="base_resultMap" parameterType="com.alibaba.util.ParamInfo">
+		SELECT
+			u.id,
+			u.username,
+			u.account,
+			u.phone,
+			u.status,
+			u.password,
+			r.stores_id,
+			r.stores_name,
+			r.stores_city,
+			rel.relid,	
+			rel.relation_name as relationName
+		FROM
+			(
+				select  * from user
+				<if test="(pageNum != null and pageNum != '') and (pageSize != null and pageSize != '')">
+					limit ${pageNum}, ${pageSize}
+				</if>
+			) u 
+		LEFT JOIN user_role_relation urr ON urr.user_id = u.id
+		LEFT JOIN stores r ON r.stores_id = urr.stores_id
+		LEFT JOIN relation rel ON rel.relid = urr.relation_id
+		<where>
+			<if test="keyword != null and keyword != ''">
+				and concat(u.username, u.account, u.phone) like '%${keyword}%'
+			</if>
+			and u.`status` = 1
+		</where>
+	</select>
+	
+	<!-- 查询总数 -->
+	<select id="getCount" resultType="int" parameterType="com.alibaba.util.ParamInfo">
+		select count(1) from user where status = 1
+		<if test="keyword != null and keyword != ''">
+			and concat(username, account, phone) like '%${keyword}%'
+		</if>
+	</select>
+	
+	<!-- 查询设置权限总数 -->
+	<select id="getUserRoleRelationCount" parameterType="com.alibaba.util.ParamInfo" resultType="int">
+		SELECT count(1) FROM (
+			SELECT
+				r.stores_id,
+				r.stores_name,
+				rel.relid,
+				rel.relation_name AS relationName
+			FROM
+				(SELECT * FROM stores) r
+			LEFT JOIN user_role_relation urr ON urr.stores_id = r.stores_id
+			LEFT JOIN relation rel ON rel.relid = urr.relation_id
+			LEFT JOIN `user` u ON u.id = urr.user_id
+			WHERE u.id = #{user_id}
+			GROUP BY r.stores_id
+		) AS aaa
+	</select>
+	
+	<!-- 设置权限 -->
+  	<select id="getUserRoleRelationInfo" parameterType="com.alibaba.util.ParamInfo" resultMap="base_resultMap2">
+  		SELECT
+			r.stores_id,
+			r.stores_name,
+			rel.relid,
+			rel.relation_name as relationName
+		FROM
+			(
+				select * from stores
+				<if test="(pageNum != null and pageNum != '') and (pageSize != null and pageSize != '')">
+					limit ${pageNum}, ${pageSize}
+				</if>
+			) r
+		LEFT JOIN user_role_relation urr ON urr.stores_id = r.stores_id
+		LEFT JOIN relation rel ON rel.relid = urr.relation_id
+		LEFT JOIN `user` u ON u.id = urr.user_id
+		WHERE u.id = #{user_id}
+  	</select>
+  	
+  	<!-- 查询要编辑门店信息 -->
+  	<select id="getRoleNameInfo" resultType="com.alibaba.pojo.Role" parameterType="com.alibaba.util.ParamInfo">
+  		SELECT
+			GROUP_CONCAT(distinct r.stores_id) stores_id,
+			GROUP_CONCAT(distinct r.stores_name) as stores_name,
+			r.stores_city,
+			GROUP_CONCAT(distinct r.stores_address) as stores_address
+		FROM
+			stores r
+		LEFT JOIN user_role_relation urr ON urr.stores_id = r.stores_id
+		LEFT JOIN `user` u ON u.id = urr.user_id
+		WHERE u.id = #{user_id}
+		GROUP BY r.stores_city
+  	</select>
+  	
+  	<!-- 编辑门店之前先删除原来的门店数据 -->
+	<delete id="deleteUserRoleName" parameterType="com.alibaba.util.ParamInfo">
+		delete from user_role_relation
+		where user_id = #{user_id}
+        and stores_id not in( ${stores_id} )
+	</delete>
+	
+  	<!-- 编辑门店之前先删除原来的门店数据 -->
+	<delete id="deleteUserRoleName2" parameterType="com.alibaba.util.ParamInfo">
+		delete from user_role_relation
+		where user_id = #{user_id}
+        and stores_id in ( ${stores_id} )
+	</delete>
+  	
+  	<!-- 查询用户下的所有门店信息 -->
+  	<select id="getUserRoleNameInfo" resultType="com.alibaba.pojo.UserRoleRelation" parameterType="com.alibaba.util.ParamInfo">
+  		select stores_id as roleId from user_role_relation
+		where user_id = #{user_id}
+  	</select>
+  	
+  	<!-- 查询门店的权限信息 -->
+  	<select id="getRoleRelationInfo" resultType="com.alibaba.pojo.UserRoleRelation" parameterType="com.alibaba.util.ParamInfo">
+  		select relation_id as relationId, stores_id as roleId from user_role_relation
+		where user_id = #{user_id}
+		and stores_id = #{stores_id}
+  	</select>
+  	
+  	<!-- 查询所有门店id -->
+  	<select id="getRoleId" resultType="com.alibaba.pojo.Role">
+  		select stores_id from stores
+  	</select>
+  	
+  	<!-- 编辑门店信息 -->
+  	<insert id="updateRoleNameInfo" parameterType="com.alibaba.util.ParamInfo">
+  		insert into user_role_relation (
+			user_id,
+			stores_id
+		) values
+		<foreach collection="list" item="role" separator=",">
+			( #{role.user_id}, #{role.stores_id} )
+		</foreach>
+  	</insert>
+ 
+  	<!-- 管理员登陆 -->
+  	<select id="adminLogin" parameterType="com.alibaba.pojo.Admin" resultType="com.alibaba.pojo.Admin">
+  		SELECT
+			id,
+			account,
+			phone,
+			`name`,
+			enterprise_name as enterpriseName,
+			pic
+		FROM
+			admin
+		WHERE
+			account = #{account}
+		AND `password` = #{password}
+  	</select>
+  	
+	<!-- 查询账号设置 --> 
+	<select id="getAccountSettings" resultType="com.alibaba.pojo.Admin">
+		select enterprise_name as enterpriseName, account, phone, pic from admin
+	</select>
+	
+	<!-- 根据密码判断管理员是否是第一次登陆 -->
+	<select id="getAdminLastLogin" resultType="com.alibaba.pojo.Admin" parameterType="com.alibaba.pojo.Admin">
+		select password from admin where `password` = #{password}
+	</select>
+	
+	<!-- 查询账号是否存在 -->
+	<select id="getAccountInfo" resultType="com.alibaba.pojo.User" parameterType="com.alibaba.pojo.User">
+		select account from user where account = #{account}
+	</select>
+	
+	<!-- 创建用户 -->
+	<insert id="createUserInfo" parameterType="com.alibaba.pojo.User">
+		insert into `user` (
+			account,
+			username,
+			phone,
+			pic
+		) values (
+			#{account},
+			#{username},
+			#{phone},
+			'https://xiangchao.oss-cn-shenzhen.aliyuncs.com/userPic/%E5%BE%AE%E4%BF%A1%E5%9B%BE%E7%89%87_20180821182233.png'
+		)
+	</insert>
+  
+  	<!-- 查询用户手机号，保证在添加的时候手机号不能重复 -->
+  	<select id="getUserPhoneInfoup" resultType="com.alibaba.pojo.User" parameterType="com.alibaba.pojo.User">
+  		select phone from user where phone = #{phone} and id != #{id} and status = 1
+  	</select>
+  	
+  	<!-- 查询用户手机号，保证在添加的时候手机号不能重复 -->
+  	<select id="getUserPhoneInfo" resultType="com.alibaba.pojo.User" parameterType="com.alibaba.pojo.User">
+  		select phone from user where phone = #{phone} and status = 1
+  	</select>
+  	
+  	<!-- 根据用户手机号查询账号 -->
+  	<select id="getUserAccountInfo" resultType="com.alibaba.pojo.User" parameterType="com.alibaba.pojo.User">
+  		select account from user where phone = #{phone} and status = 1
+  	</select>
+  	
+  	<!-- 删除用户 -->
+    <update id="deleteUserInfo" parameterType="com.alibaba.pojo.User">
+    	update user set
+    	status = 0
+    	where id = #{id}
+    </update>
+    
+    <!-- 查询用户id -->
+    <select id="getUserIdInfo" resultType="com.alibaba.pojo.User" parameterType="com.alibaba.pojo.User">
+    	select account from user where id = #{id} and status = 1
+    </select>
+    
+    <!-- 查询用户列表 -->
+	<select id="getUserInfo" resultType="com.alibaba.pojo.User" parameterType="com.alibaba.util.ParamInfo">
+		select id, username, account, phone, status, password from `user` 
+		<where>
+			<if test="keyword != null and keyword != ''">
+				and concat(username, account, phone) like '%${keyword}%'
+			</if>
+			and status = 1
+		</where>
+		<if test=" ( pageNum != null and pageNum != '' ) and ( pageSize != null and pageSize != '' ) ">
+			limit ${pageNum}, ${pageSize}
+		</if>
+	</select>
+	
+	<!-- 根据id查询要修改的用户列表 -->
+	<select id="getUserInfoById" resultType="com.alibaba.pojo.User" parameterType="com.alibaba.pojo.User">
+		select id, account, username, password, phone, status from user where id = #{id} and status = 1
+	</select>
+	
+	<!-- 修改用户列表信息 -->
+	<update id="updateUserInfo" parameterType="com.alibaba.pojo.User">
+		update user
+		<set>
+			<if test="username != null and username != ''">
+				username = #{username},
+			</if>
+			<if test="phone != null and phone != ''">
+				phone = #{phone},
+			</if>
+		</set>
+		where id = #{id}
+	</update>
+	
+	<!-- 查询管理员手机号 -->	
+	<select id="getAdminPhone" resultType="java.lang.String" parameterType="com.alibaba.pojo.Admin">
+		select phone from admin where id = 1
+	</select>
+	
+	<!-- 第一次登陆，设置管理员密码 -->
+	<update id="updateAdminPwd" parameterType="com.alibaba.pojo.Admin">
+		UPDATE admin
+		SET `password` = #{password}
+		WHERE
+			id = 1
+	</update>
+	
+	<!-- 查询企业信息 -->
+	<select id="getEnterpriseInfo" resultType="com.alibaba.pojo.Admin">
+		select 
+			id,
+			account,
+			password,
+			phone,
+			enterprise_name as enterpriseName,
+			pic
+		from admin
+	</select>
+	
+	<!-- 修改企业信息 -->
+	<update id="updateEnterpriseInfo" parameterType="com.alibaba.pojo.Admin">
+		update admin
+		<set>
+			<if test="pic != null and pic != ''">
+				pic = #{pic},
+			</if>
+			<if test="enterpriseName != null and enterpriseName != ''">
+				enterprise_name = #{enterpriseName},
+			</if>
+		</set>
+		where id = 1
+	</update>
+	
+	<!-- 查询管理员密码 -->
+	<select id="getAdminPwd" resultType="java.lang.String">
+		select `password` from admin
+	</select>
+	
+	<!-- 修改管理员绑定的手机号 -->
+	<update id="updateAdminPhone" parameterType="com.alibaba.pojo.Admin">
+		update admin
+		set phone = #{phone}
+		where id = 1
+	</update>
+	
+	<!-- 在修改密码的时候查询管理员账号和手机号 -->
+	<select id="getAdminAccountPhoneInfo" resultType="com.alibaba.pojo.Admin">
+		select account, phone from admin
+	</select>
+	
+	<!-- 修改管理员密码 -->
+	<update id="changeAdminPwd" parameterType="com.alibaba.util.ParamInfo">
+		update admin set
+		password = #{password}
+		where id = 1
+	</update>
+	
+	<!-- 分配之前先删除原来的权限数据 -->
+	<delete id="deleteUserRoleRelation" parameterType="java.util.List">
+		delete from user_role_relation
+		where user_id in
+		<foreach item="l" collection="list" open="(" separator="," close=")">
+            #{l.user_id}
+        </foreach>
+		and stores_id in
+		<foreach item="l" collection="list" open="(" separator="," close=")">
+            #{l.stores_id}
+        </foreach>
+	</delete>
+	
+	<!-- 批量分配权限数据 -->
+	<insert id="addUserRoleRelation" parameterType="java.util.List">
+		insert into user_role_relation (
+			user_id,
+			stores_id,
+			relation_id
+		) values
+		<foreach collection="list" item="role" separator=",">
+			( #{role.user_id}, #{role.stores_id}, #{role.relationId} )
+		</foreach>
+	</insert>
+	
+	<!-- 查询企业头像 -->
+	<select id="getPicInfo" resultType="java.lang.String">
+		select pic from admin
+	</select>
+	
+	<!-- 查询头像存储个数 -->
+	<select id="getPicSize" resultType="java.lang.String">
+		select pic_size from admin
+	</select>
+	
+	<!-- 修改图像存储量 -->
+	<update id="updatePicSize" parameterType="com.alibaba.pojo.Admin">
+		update admin set
+		pic_size = #{picSize}
+		where id = 1
+	</update>
+	
+	<!-- 查询总数 -->
+	<select id="getCount2" resultType="int" parameterType="com.alibaba.util.ParamInfo">
+		select count(1) from (
+			SELECT
+				u.id,
+				u.username,
+				u.account,
+				u.phone,
+				s.stores_id,
+				s.stores_name,
+				GROUP_CONCAT(DISTINCT m.machine_name) as machine_name,
+				GROUP_CONCAT(DISTINCT m.machine_id) as machine_id
+			FROM
+				`user` u
+			LEFT JOIN user_role_relation urr ON urr.user_id = u.id
+			LEFT JOIN stores s ON s.stores_id = urr.stores_id
+			LEFT JOIN machine m ON m.stores_id = urr.stores_id
+			where u.`status` = 1
+			and s.stores_name is NOT NULL
+			and machine_name is NOT NULL
+			<if test="status != null and status != ''">
+				and m.`status` = #{status}
+			</if>
+			<if test="keyword != null and keyword != ''">
+				and CONCAT(u.username, u.account, u.phone, s.stores_name) LIKE '%${keyword}%'
+			</if>
+			GROUP BY u.id
+		) as count
+	</select>
+	
+	<!-- 查询终端机总数 -->
+	<select id="getMachineCount" resultType="int" parameterType="com.alibaba.util.ParamInfo">
+		SELECT
+			DISTINCT ( select count(1) from machine where m.stores_id = s.stores_id ) as frequency
+		FROM
+			 `user` u
+		LEFT JOIN user_role_relation urr ON urr.user_id = u.id
+		LEFT JOIN stores s ON s.stores_id = urr.stores_id
+		LEFT JOIN machine m ON m.stores_id = urr.stores_id
+		where u.`status` = 1
+		<if test="status != null and status != ''">
+			and m.`status` = #{status}
+		</if>
+		GROUP BY u.account,s.stores_name
+		HAVING 1=1
+		and frequency != '0'
+	</select>
+	
+	<!-- 查询每个用户下门店终端机的总和 -->
+	<select id="getAdminMachineCount" resultType="java.lang.String" parameterType="com.alibaba.util.ParamInfo">
+		select SUM(frequency) from (
+			SELECT
+				u.id as uid,
+				u.username,
+				u.account,
+				u.phone,
+				s.stores_name,
+				s.stores_id,
+				GROUP_CONCAT( DISTINCT m.machine_name ) as machine_name,
+				GROUP_CONCAT( DISTINCT m.machine_id) as machine_id,
+				count(DISTINCT machine_id) as frequency
+			FROM
+				 ( 
+				 	select * from `user` 
+				 	<if test="(pageNum != null and pageNum != '') and (pageSize != null and pageSize != '')">
+						limit ${pageNum}, ${pageSize}
+					</if>
+				 ) u
+			LEFT JOIN user_role_relation urr ON urr.user_id = u.id
+			LEFT JOIN stores s ON s.stores_id = urr.stores_id
+			LEFT JOIN machine m ON m.stores_id = urr.stores_id
+			where u.`status` = 1
+			and s.stores_name is NOT NULL
+			and machine_name is NOT NULL
+			<if test="keyword != null and keyword != ''">
+				and CONCAT(u.username, u.account, u.phone, s.stores_name) LIKE '%${keyword}%'
+			</if>
+			<if test="status != null and status != ''">
+				and m.`status` = #{status}
+			</if>
+			GROUP BY u.account,s.stores_name
+		) as count GROUP BY uid
+	</select>
+	
+	<!-- 终端机管理 -->
+	<select id="getAdminMachine" resultMap="base_resultMap3" parameterType="com.alibaba.util.ParamInfo">
+		SELECT
+			u.id,
+			u.username,
+			u.account,
+			u.phone,
+			s.stores_name,
+			s.stores_id,
+			GROUP_CONCAT( DISTINCT m.machine_name ) as machine_name,
+			GROUP_CONCAT( DISTINCT m.machine_id) as machine_id,
+			count(DISTINCT machine_id) as frequency,
+			( 
+				select GROUP_CONCAT(m.`status`) from machine m where m.stores_id = s.stores_id 
+				<if test="status != null and status != ''">
+					and m.`status` = #{status}
+				</if>
+				GROUP BY m.stores_id ) as `status`
+		FROM
+			 ( 
+			 	select * from `user` 
+			 	<if test="(pageNum != null and pageNum != '') and (pageSize != null and pageSize != '')">
+					limit ${pageNum}, ${pageSize}
+				</if>
+			 ) u
+		LEFT JOIN user_role_relation urr ON urr.user_id = u.id
+		LEFT JOIN stores s ON s.stores_id = urr.stores_id
+		LEFT JOIN machine m ON m.stores_id = urr.stores_id
+		where u.`status` = 1
+		and s.stores_name is NOT NULL and s.stores_name != ''
+		and machine_name is NOT NULL and machine_name != ''
+		<if test="status != null and status != ''">
+			and m.`status` = #{status}
+		</if>
+		<if test="keyword != null and keyword != ''">
+			and CONCAT(u.username, u.account, u.phone, s.stores_name) LIKE '%${keyword}%'
+		</if>
+		GROUP BY u.account,s.stores_name
+		having 1=1
+	</select>
+	
+	<!-- 查询那一段特殊的id -->
+	<select id="getNotInStoresId" resultType="java.lang.String">
+		select m.stores_id from machine m where m.stores_id NOT in( select stores_id from user_role_relation ) GROUP BY m.stores_id
+	</select>
+	
+	<!-- 查询总数 -->
+	<select id="getCount3" resultType="int" parameterType="com.alibaba.util.ParamInfo">
+		select count(1) from (
+			select count(1) from (
+				SELECT
+					m.id,
+					m.stores_id,
+					s.stores_city as stores_city,
+					s.stores_name,
+					GROUP_CONCAT(m.machine_id) as machine_id,
+					GROUP_CONCAT(m.machine_name) as machine_name,
+					count(DISTINCT machine_id) as frequency,
+					( 
+						select GROUP_CONCAT(m.`status`) from machine m where m.stores_id = s.stores_id 
+						<if test="status != null and status != ''">
+							and `status` = #{status}
+						</if>
+						GROUP BY m.stores_id ) as `status`
+				FROM
+					machine m
+				LEFT JOIN stores s ON s.stores_id = m.stores_id
+				where m.stores_id in ( ${content} )
+				<if test="status != null and status != ''">
+					and `status` = #{status}
+				</if>
+				GROUP BY s.stores_name
+				having 1=1
+				<if test="keyword != null and keyword != ''">
+					and CONCAT(s.stores_city, s.stores_name) LIKE '%${keyword}%'
+				</if>
+			) as count GROUP BY stores_city
+		) as count
+	</select>
+	
+	<!-- 查询门店终端机总数 -->
+	<select id="getAdminMachineCount2" resultType="java.lang.String" parameterType="com.alibaba.util.ParamInfo">
+		select sum(frequency) from (
+			SELECT
+				m.id,
+				m.stores_id,
+				s.stores_city,
+				s.stores_name,
+				GROUP_CONCAT(m.machine_id) as machine_id,
+				GROUP_CONCAT(m.machine_name) as machine_name,
+				count(DISTINCT machine_id) as frequency,
+				( 
+					select GROUP_CONCAT(m.`status`) from machine m where m.stores_id = s.stores_id 
+					<if test="status != null and status != ''">
+						and `status` = #{status}
+					</if>
+					GROUP BY m.stores_id ) as `status`
+			FROM
+				machine m
+			LEFT JOIN stores s ON s.stores_id = m.stores_id
+			where m.stores_id in ( ${content} )
+			<if test="status != null and status != ''">
+				and `status` = #{status}
+			</if>
+			and stores_city in ( ${cityContent} )
+			GROUP BY s.stores_name
+			having 1=1
+			<if test="keyword != null and keyword != ''">
+				and CONCAT(s.stores_city, s.stores_name) LIKE '%${keyword}%'
+			</if>
+		) as count group by stores_city
+	</select>
+	
+	<!-- 查询未分发 -->
+	<select id="getAdminMachineDistribute" parameterType="com.alibaba.util.ParamInfo" resultMap="base_resultMap3">
+		SELECT
+			m.id,
+			m.stores_id,
+			s.stores_city as stores_city,
+			s.stores_name,
+			GROUP_CONCAT(m.machine_id) as machine_id,
+		 	GROUP_CONCAT(m.machine_name) as machine_name,
+			count(DISTINCT machine_id) as frequency,
+			( 
+				select GROUP_CONCAT(m.`status`) from machine m where m.stores_id = s.stores_id 
+				<if test="status != null and status != ''">
+					and `status` = #{status}
+				</if>
+				GROUP BY m.stores_id 
+			) as `status`
+		FROM
+			machine m
+		LEFT JOIN stores s ON s.stores_id = m.stores_id
+		where m.stores_id in ( ${content} )
+		<if test="status != null and status != ''">
+			and `status` = #{status}
+		</if>
+		and stores_city in ( ${cityContent} )
+		GROUP BY s.stores_name
+		having 1=1
+		<if test="keyword != null and keyword != ''">
+			and CONCAT(s.stores_city, s.stores_name) LIKE '%${keyword}%'
+		</if>
+	</select>
+	
+	<!-- 分页查询城市 -->
+	<select id="getPageInfoCity" resultType="java.lang.String" parameterType="com.alibaba.util.ParamInfo">
+		select stores_city from (
+			SELECT
+				m.id,
+				m.stores_id,
+				s.stores_city as stores_city,
+				s.stores_name,
+				GROUP_CONCAT(m.machine_id) as machine_id,
+				GROUP_CONCAT(m.machine_name) as machine_name,
+				count(DISTINCT machine_id) as frequency,
+				( 
+					select GROUP_CONCAT(m.`status`) from machine m where m.stores_id = s.stores_id 
+					GROUP BY m.stores_id 
+				) as `status`
+			FROM
+				machine m
+			LEFT JOIN stores s ON s.stores_id = m.stores_id
+			where m.stores_id in ( ${content} )
+			GROUP BY s.stores_name
+			having 1=1
+		) as count GROUP BY stores_city
+		<if test="(pageNum != null and pageNum != '') and (pageSize != null and pageSize != '')">
+			limit ${pageNum}, ${pageSize}
+		</if>
+	</select>
+    
+</mapper>

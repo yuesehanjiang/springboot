@@ -1,0 +1,590 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.alibaba.dao.InterfaceInfoMapper">
+  
+  <!-- 终端机初始化的时候获取所有门店信息 -->
+  <select id="machineInit" resultType="com.alibaba.pojo.Role">
+  	select stores_id,stores_name from stores
+  </select>
+  
+  <select id="getId" resultType="java.lang.String">
+  	  select id from machine where machine_name = #{value}
+  </select>
+  
+  <!-- 查询终端机内存 -->
+  <select id="getMemorys" resultType="com.alibaba.pojo.Machine">
+  	select machine_id,memory from machine
+  </select>
+  
+   <!-- 修改终端机内存大小 -->
+   <update id="updateMachineMemory">
+	   	update machine set memory = #{memory}
+	   	where machine_id = #{machine_id}
+   </update>
+   
+   <!-- 查询终端机内存 -->
+   <select id="getMemory" resultType="java.lang.String">
+   	   select memory from machine where machine_id = #{value}
+   </select>
+  
+   <select id="getExclusives" resultType="com.alibaba.pojo.MemberShip">
+   	   select user_id, user_name, `exclusive` from membership where stores_id = #{value}
+   </select>
+  
+   <!-- 查询门店id -->
+   <select id="getStoresId" resultType="java.lang.String">
+   		select stores_id from machine where machine_id = #{machine_id}
+   </select>
+   
+   <!-- 根据门店id查询欢迎词 -->
+   <select id="getStoresIdByName" resultType="java.lang.String">
+   		select `name` from greetings where role_id like '%${value}%'
+   </select>
+  
+   <!-- ********************saveMemberInfo* 问候语推送 ************************ -->
+   <select id="getNonmemberNamePush" resultType="com.alibaba.pojo.Greetings" parameterType="com.alibaba.pojo.NonMember">
+   		SELECT
+			GROUP_CONCAT(machine_id) as roleId,
+			g.nonmember_name as nonmemberName
+		FROM
+			greetings g
+		INNER JOIN machine m ON FIND_IN_SET(m.stores_id, g.role_id)
+		where m.stores_id = #{stores_id}
+   </select>
+   
+   <!-- 会员优先推的问候语 -->
+   <select id="getExclusive" resultType="java.lang.String" parameterType="com.alibaba.pojo.Admission">
+	   	select `exclusive` from membership m where user_id = #{user_id}
+		GROUP BY user_id HAVING 1=1 
+		and m.`exclusive` is not NULL
+		and m.`exclusive` != ''
+   </select>
+   
+   <!-- 查询会员问候语 -->
+   <select id="getNamePush" resultType="com.alibaba.pojo.Greetings" parameterType="com.alibaba.pojo.Admission">
+   		SELECT
+			GROUP_CONCAT(DISTINCT machine_id) as roleId,
+			g.name
+		FROM
+			greetings g
+		INNER JOIN machine m ON FIND_IN_SET(m.stores_id, g.role_id)
+		where m.stores_id = #{stores_id}
+   </select>
+  
+  <!-- 查询会员名称 -->
+  <select id="getMemberName" resultType="java.lang.String" parameterType="com.alibaba.pojo.Admission">
+  		select DISTINCT user_name from membership where user_id = #{user_id}
+  </select>
+   
+  
+  <!-- 查询会员图像个数 -->
+  <select id="getManagementPicCount" resultType="int" parameterType="com.alibaba.pojo.ManagementPic">
+  	select count(1) from management_pic where user_id = #{user_id}
+  </select>
+  
+  
+  
+  <!-- 终端机的操作和推送 start -->
+  
+  <insert id="savePush" parameterType="com.alibaba.pojo.Push">
+  	  insert into push ( device_id,folder_id ) values (#{device_id}, #{folder_id})
+  </insert>
+  
+  <!-- 修改终端机状态 -->
+  <update id="updatePushStatus" parameterType="com.alibaba.pojo.Push">
+  	  update push set status = 1
+  	  where folder_id = #{folder_id}
+  	  and device_id = #{device_id}
+  </update>
+	
+  <!-- 判断解绑的终端机是否符合删除条件 -->  
+  <select id="delPush" parameterType="com.alibaba.pojo.Push" resultType="java.lang.String">
+  	select device_id from push where folder_id = #{folder_id} and status = 0
+  </select>
+  
+  <!-- 删除解绑的终端机 -->
+  <delete id="delPushInfos" parameterType="com.alibaba.pojo.Push">
+  		delete from push where folder_id = #{folder_id}
+  </delete>
+  
+  <!-- 终端机的操作和推送 end -->
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  	
+  	
+   <delete id="deleteNomemberImageLibrary">
+	   	DELETE FROM nomember_image_library
+		WHERE photo_time <![CDATA[ < ]]> DATE_SUB(NOW(),INTERVAL 1 MONTH)
+   </delete>
+  
+  	<!-- 修改会员头像 -->
+    <update id="updateMembershipPic" parameterType="com.alibaba.pojo.MemberShip">
+    	update membership set
+		user_pic = #{user_pic},
+		face = #{face}
+		where user_id = #{user_id}
+    </update>
+    
+  	<!-- 修改会员未曾会员 -->
+    <update id="updateMembership" parameterType="com.alibaba.pojo.MemberShip">
+    	update membership set
+		member_type = #{member_type}
+		where user_id = #{user_id}
+    </update>
+  
+  	<!-- 查询会员是否已存在 -->
+  	<select id="getUserIdInfo" resultType="java.lang.String" parameterType="com.alibaba.pojo.MemberShip">
+  		select DISTINCT user_id from membership where user_id = #{user_id}
+  	</select>
+  
+  	<!-- 删除之前的会员信息，添加最新的 -->
+  	<delete id="deleteMembership">
+  		delete from membership where user_id in (${value})
+  	</delete>
+  
+  	<!-- 批量添加会员信息 -->
+  	<insert id="saveMemberShip" parameterType="com.alibaba.pojo.MemberShip">
+  		insert into membership (
+			stores_id,
+			user_id,
+			user_name,
+			user_cards,
+			user_pic,
+			user_type,
+			member_type,
+			face
+  		) values
+  		<foreach collection="list" item="memberShip" separator=",">
+			( 
+				#{memberShip.stores_id}, #{memberShip.user_id}, #{memberShip.user_name}, #{memberShip.user_cards},
+				#{memberShip.user_pic}, #{memberShip.user_type}, #{memberShip.member_type}, #{memberShip.face}	
+			)
+		</foreach>
+  	</insert>
+  	
+  	<!-- 添加单条会员数据 -->
+  	<insert id="saveMemberShip2" parameterType="com.alibaba.pojo.MemberShip">
+  		insert into membership (
+			stores_id,
+			user_id,
+			user_name,
+			user_cards,
+			user_pic,
+			user_type,
+			member_type,
+			face
+  		) values (
+  			#{stores_id},
+  			#{user_id},
+  			#{user_name},
+  			#{user_cards},
+  			#{user_pic},
+  			#{user_type},
+  			#{member_type},
+  			#{face}
+  		)
+  	</insert>
+  	
+  	<!-- 批量添加门店信息 -->
+  	<insert id="saveStores" parameterType="com.alibaba.pojo.Role">
+  		insert into stores (
+  			stores_id,
+  			stores_name,
+  			stores_city,
+  			stores_address
+  		) values (
+  			#{stores_id},
+			#{stores_name},
+			#{stores_city},
+			#{stores_address}
+  		)
+  	</insert>
+  	
+  	<!-- 添加非会员数据 -->
+  	<insert id="saveNonMember" parameterType="com.alibaba.pojo.NonMember">
+  		insert into non_member (
+  			stores_id,
+			user_name,
+			user_phone,
+			user_in_time
+  		) values (
+  			#{stores_id},
+			#{user_name},
+			#{user_phone},
+			now()
+  		)
+  	</insert>
+  	
+  	<!-- 查询总数 -->
+  	<select id="getBindingCount" resultType="int">
+  		select count(1) from binding
+  	</select>
+  	
+  	<!-- 清空表的下标 -->
+  	<select id="truncateBinding">
+  		truncate binding
+  	</select>
+  	
+  	<!-- 添加绑定的uuid -->
+  	<insert id="saveBinding" parameterType="com.alibaba.pojo.Binding">
+  		insert into binding (
+  			user_id,
+  			uuid
+  		) values (
+  			#{user_id},
+  			#{uuid}
+  		)
+  	</insert>
+  	
+  	<!-- 添加绑定的uuid入场 -->
+  	<insert id="saveAdmissionBind" parameterType="com.alibaba.pojo.Binding">
+  		insert into admission_bind (
+  			user_id,
+  			uuid
+  		) values (
+  			#{user_id},
+  			#{uuid}
+  		)
+  	</insert>
+  	
+  	
+  	<!-- ****************************** 就你奇葩 ************************************** -->
+  	<!-- 查询入场的uuid -->
+  	<select id="getAdmissionBindUuid" resultType="java.lang.String">
+  		select uuid from admission_bind where user_id = #{value}
+  	</select>
+  	<!-- 删除询入场的uuid -->
+  	<delete id="deleteAdmissionBindUuid">
+  		delete from admission_bind where user_id = #{value}
+  	</delete>
+  	<select id="truncateAdmissionBind">
+  		truncate admission_bind
+  	</select>
+  	<!-- 查询拍照时间 -->
+  	<select id="getPhotoTime" resultType="java.lang.String">
+  		select photo_time from management_pic where user_id = #{user_id} and uuid = #{uuid}
+  	</select>
+  	<!-- 查询入场时间 -->
+  	<select id="getUserInTime" resultType="java.lang.String">
+  		select DATE_ADD(user_in_time,INTERVAL 5 MINUTE) from admission where user_id = #{user_id} and uuid = #{uuid}
+  	</select>
+  	<!-- 删除拍照数据 -->
+  	<delete id="deleteManagementPicInfo">
+  		delete from management_pic where user_id = #{user_id} and uuid = #{uuid}
+  	</delete>
+  	<!-- ****************************** 就你奇葩 ************************************** -->
+  	
+  	
+  	
+  	
+  	
+  	
+  	<!-- 查询要删除拍照信息的数据 -->
+  	<select id="getManagementPicUuid" resultType="java.lang.String">
+  		SELECT mp.uuid FROM  management_pic mp LEFT JOIN admission a ON (a.uuid = mp.uuid)
+		WHERE a.uuid IS NULL
+  	</select>
+  	
+  	<!-- 开始删除 -->
+  	<delete id="deleteManagementPicUuid">
+  		delete from management_pic where uuid in(${value})
+  	</delete>
+  	
+  	<!-- 超级删除 -->
+  	<select id="deleteChao" resultType="java.lang.String">
+  		select user_id from binding GROUP BY user_id HAVING count(user_id) > 1
+  	</select>
+ 	
+ 	<!-- 入场的时候查询uuid --> 	
+  	<select id="getAdmissionUuid" resultType="java.lang.String">
+  		select uuid from binding where user_id = #{user_id}
+  	</select>
+  	
+ 	<!-- 入场的时候查询uuid --> 	
+  	<delete id="deleteAdmissionUuid">
+  		delete from binding where user_id = #{user_id}
+  	</delete>
+  	
+  	<!-- 添加入场人数统计会员信息 -->
+  	<insert id="saveAdmission" parameterType="com.alibaba.pojo.Admission">
+  		insert into admission (
+			stores_id,
+			user_id,
+			user_card,
+			user_type,
+			appoint,
+			valid_member,
+			uuid,
+			user_in_time
+  		) values (
+  			#{stores_id},
+			#{user_id},
+			#{user_card},
+			#{user_type},
+			#{appoint},
+			#{valid_member},
+			#{uuid},
+			#{user_in_time}
+  		)
+  	</insert>
+  	
+  	<!-- 添加非会员图像库 -->
+  	<insert id="saveNomemberImageLibrary" parameterType="com.alibaba.pojo.NomemberImageLibrary">
+  		insert into nomember_image_library (
+			pic_path,
+			photo_time
+		) values (
+			#{pic_path},
+			#{photo_time}
+		)
+  	</insert>
+  	
+  	<!-- 添加会员图像库 -->
+  	<insert id="saveManagementPic" parameterType="com.alibaba.pojo.ManagementPic">
+  		insert into management_pic (
+			pic_path,
+			user_id,
+			running_water,
+			user_type,
+			uuid,
+			photo_time
+		) values (
+			#{pic_path},
+			#{user_id},
+			#{running_water},
+			#{user_type},
+			#{uuid},
+			#{photo_time}
+		)
+  	</insert>
+  	
+  	<!-- 添加门店下面终端机的信息 -->
+  	<insert id="saveMachine" parameterType="com.alibaba.pojo.Machine" useGeneratedKeys="true" keyProperty="id">
+  		insert into machine (
+			machine_id,
+			stores_id,
+			machine_name,
+			status
+  		) values (
+  			#{machine_id},
+			#{stores_id},
+			#{machine_name},
+			1
+  		)
+  	</insert>
+  	
+  	<!-- 查询设置终端机名称2 -->
+  	<select id="getMachineNameInfo2" parameterType="com.alibaba.pojo.Machine" resultType="java.lang.String">
+  		select machine_name from machine where stores_id = #{stores_id}
+  	</select>
+  	
+  	<!-- 查询设置终端机名称 -->
+  	<select id="getMachineNameInfo" resultType="java.lang.String" parameterType="com.alibaba.pojo.Machine">
+  		select stores_name from stores where stores_id = #{stores_id}
+  	</select>
+  	
+  	<!-- 查询终端机id是否存在 -->
+  	<select id="getMachineInfo" resultType="java.lang.String" parameterType="com.alibaba.pojo.Machine">
+  		select machine_id from machine where machine_id = #{machine_id}
+  	</select>
+  	
+  	<!-- 根据门店id查询终端机名 -->
+  	<select id="getMachineMachineNameByStoresId" resultType="com.alibaba.pojo.Machine" parameterType="com.alibaba.pojo.Machine">
+  		select machine_name from machine where stores_id = #{stores_id}
+  	</select>
+  	
+  	<!-- 根据id查询终端机的信息 -->
+  	<select id="getMachineById" parameterType="com.alibaba.pojo.Machine" resultType="com.alibaba.pojo.Machine">
+  		select  
+  			memory,
+  			machine_id,
+			stores_id,
+			machine_name
+  		from machine
+  		where id = #{id}
+  	</select>
+  	
+  	<resultMap id="base_resultMap" type="com.alibaba.pojo.Folder">
+  		<id column="id" property="id" />
+  		<result column="folderName" property="folderName" />
+  		<result column="stores_name" property="stores_name" />
+  		<result column="stores_id" property="stores_id" />
+  		<result column="startTime" property="startTime" />
+  		<result column="endTime" property="endTime" />
+  		<result column="type" property="type" />
+  		<result column="content_type" property="content_type" />
+  		<result column="unlimited_time" property="unlimited_time" />
+  		<!-- 文件信息 -->
+  		<collection property="files" ofType="com.alibaba.pojo.File">
+  			<id column="fid" property="fid" />
+  			<result column="fileName" property="fileName" />
+  			<result column="filePath" property="filePath" />
+  			<result column="file_size" property="file_size" />
+  		</collection>
+  	</resultMap>
+  	
+  	<!-- 判断页面新增了文件还是删除了文件 -->
+  	<select id="getFolderCount" resultType="int" parameterType="com.alibaba.pojo.File">
+  		select count(1) from file where folder_id = #{folderId}
+  	</select>
+  	
+  	<!-- ***************************************************** -->
+  	
+  	<!-- 查询要推送的文件夹数据 -->
+  	<select id="getFolderInfos" resultMap="base_resultMap" parameterType="com.alibaba.util.ParamInfo">
+  		SELECT
+			f.id,
+			f.folder_name as folderName,
+			IFNULL(f.start_time, "") as startTime,
+			IFNULL(f.end_time, "") as endTime,
+			f.type,
+			f.content_type,
+			f.unlimited_time,
+			fi.fid,
+			fi.file_name as fileName,
+			fi.file_path as filePath,
+			fi.file_size / 1024 as file_size
+		FROM
+			folder f
+		LEFT JOIN file fi ON fi.folder_id = f.id
+		where f.`status` = 1
+		and f.id = #{id}
+		-- and to_days(f.start_time) = to_days(now())
+		-- and date_add(fi.create_time, interval 2 hour) &lt; f.end_time
+  	</select>
+  	
+  	<!-- 查询某个文件夹所有的终端机 -->
+  	<select id="getFolderMachineIds" resultType="java.lang.String" parameterType="com.alibaba.pojo.File">
+  		select machine_ids from folder where id = #{folderId}
+  	</select>
+  	 
+  	<!-- 如果没数据就不推送 -->
+  	<select id="getdeviceIdNull" resultType="java.lang.String" parameterType="com.alibaba.pojo.PushStatus">
+  		select device_id from push_status where folder_id = #{folder_id}
+  	</select>
+  	
+  	<!-- 查询设备表里的删除状态是否符合删除 -->
+  	<select id="getIsDeleteInfo" resultType="java.lang.String" parameterType="com.alibaba.pojo.PushStatus">
+  		select is_delete from push_status where folder_id = #{folder_id} and is_delete = 1
+  	</select>
+  	
+  	<!-- 修改删除状态 -->
+  	<update id="updateIsDetete" parameterType="com.alibaba.pojo.PushStatus">
+  		update push_status set
+  		is_delete = 0
+  		where folder_id = #{folder_id}
+  		and device_id = #{device_id}
+  	</update>
+  	
+  	<!-- 查询文件夹下的所有终端机 -->
+  	<select id="getMacFolderInfos" resultType="java.lang.String" parameterType="com.alibaba.pojo.Folder">
+  		select machine_ids from folder where id = #{id}
+  	</select>
+  	
+  	<!-- 查询第一次推送的终端机 -->
+  	<select id="getMacStatusLast" resultType="java.lang.String" parameterType="com.alibaba.pojo.PushStatus">
+  		 select group_concat(device_id) from push_status where folder_id = #{folder_id} and `status` = 0
+  	</select>
+  	
+  	<!-- 查询第一次推送的终端机 -->
+  	<select id="getMacStatusLast2" resultType="java.lang.String" parameterType="com.alibaba.pojo.PushStatus">
+  		 select group_concat(device_id) from push_status where folder_id = #{folder_id} and `status` = 1
+  	</select>
+  	
+  	<!-- 查询可以推送的终端机 -->
+  	<select id="getMacStatus" resultType="java.lang.String" parameterType="com.alibaba.pojo.PushStatus">
+  		 select group_concat(device_id) from push_status where folder_id = #{folder_id} and `status` = 1
+  	</select>
+  	<!-- 查询可以推送的终端机 -->
+  	<select id="getMacStatus2" resultType="java.lang.String" parameterType="com.alibaba.pojo.PushStatus">
+  		 select group_concat(device_id) from push_status where folder_id = #{folder_id} and `status` = 0
+  	</select>
+  	
+  	<!-- 查询终端机状态是不是都为0的是就是第一次推送 -->
+  	<select id="getMacStatus0" resultType="java.lang.String" parameterType="com.alibaba.pojo.PushStatus">
+  		select group_concat(device_id) from push_status where folder_id = #{folder_id} and `status` = 1
+  	</select>
+  	
+  	<!-- 查询终端机是不是符合清0的条件 -->
+  	<select id="getMacStatusInfos0" resultType="java.lang.String" parameterType="com.alibaba.pojo.PushStatus">
+  		select group_concat(device_id) from push_status where folder_id = #{folder_id} and `status` = 0
+  	</select>
+  	
+  	<!-- 将数据库中某个文件夹id的终端机重置为离线 -->
+  	<update id="updateMacStatus0" parameterType="com.alibaba.pojo.PushStatus">
+  		update push_status set
+  		status = 0
+  		where folder_id = #{folder_id}
+  	</update>
+  	
+  	
+  	
+  	
+  	<!-- 查询有没有终端机 -->
+  	<select id="getTestInfo" resultType="java.lang.String" parameterType="com.alibaba.pojo.Test">
+  		select device_id from test where folder_id = #{folder_id}
+  	</select>
+  	<!-- ***************************************************** -->
+  	
+  	<!-- 修改推送给终端机收到修改状态 -->
+  	<update id="terminalMachineUploadStatus" parameterType="com.alibaba.pojo.File">
+  		update file set 
+  		terminal_received = 1
+  		where fid in ( ${content} )
+  		and folder_id = #{folderId}
+  	</update>
+  	
+  	<update id="terminalMachineUploadStatus2" parameterType="com.alibaba.pojo.File">
+  		update file set 
+  		terminal_received = 0
+  		and folder_id = #{folderId}
+  	</update>
+  	
+  	<!-- 查询文件夹下的文件是否已全部推送 -->
+  	<select id="getFolderFilePushIs" resultType="com.alibaba.pojo.File" parameterType="com.alibaba.util.ParamInfo">
+  		SELECT 
+          *
+        FROM
+      `folder` 
+       WHERE push_is ="0"
+       and id =#{id}
+  	</select>
+  	
+  	<!-- 推送成功修改文件推送状态 -->
+  	<update id="updateFilepushIs" parameterType="com.alibaba.util.ParamInfo">
+  		update file set
+  		push_is = 1
+  		where folder_id = #{id}
+  	</update>
+  	
+  	<!-- 创建文件夹的时候获取该文件夹所有的终端机 -->
+  	<select id="getFolderMachines" resultType="java.lang.String" parameterType="java.lang.String">
+  		select machine_ids from folder where id = #{id}
+  	</select>
+  	
+  	
+  	
+  	
+  	
+  	<!-- 查询已停播的文件夹 -->
+  	<select id="getFolderStatus" resultType="com.alibaba.pojo.Folder" parameterType="com.alibaba.pojo.Machine">
+  		select f.id, f.machine_ids from folder f
+		where f.`status` = 0
+		and f.id = #{id}
+  	</select>
+  	
+</mapper>

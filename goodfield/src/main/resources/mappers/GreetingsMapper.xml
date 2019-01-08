@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.alibaba.dao.GreetingsMapper">
+  	
+  	<resultMap id="base_resultMap" type="com.alibaba.pojo.Greetings">
+  		<id column="id" property="id" />
+  		<result column="name" property="name" />
+  		<result column="nonmemberName" property="nonmemberName" />
+  		<result column="roleId" property="roleId" />
+  		<result column="userId" property="userId" />
+  		<collection property="roles" ofType="com.alibaba.common.param.RoleParam">
+  			<id column="stores_id" property="stores_id" />
+  			<result column="stores_name" property="stores_name" />
+  		</collection>
+  	</resultMap>
+  	
+  	<!-- 门店信息 -->
+	<resultMap id="base_resultMap2" type="com.alibaba.pojo.Role">
+		<id column="stores_id" property="stores_id" />
+		<result column="stores_name" property="stores_name" />
+		<!-- 权限信息 -->
+		<collection property="relations" ofType="com.alibaba.pojo.Relation">
+			<id column="relid" property="relid" />
+			<result column="relationName" property="relationName" />
+		</collection>
+	</resultMap>
+  	
+  	<!-- 查询问候语门店列表信息 -->
+	<select id="getUserRoleRelationInfo" resultMap="base_resultMap2" parameterType="com.alibaba.util.ParamInfo">
+		SELECT
+			r.stores_id,
+			r.stores_name,
+			rel.relid,
+			rel.relation_name AS relationName
+		FROM
+			(SELECT * FROM stores) r
+		LEFT JOIN user_role_relation urr ON urr.stores_id = r.stores_id
+		LEFT JOIN relation rel ON rel.relid = urr.relation_id
+		LEFT JOIN `user` u ON u.id = urr.user_id
+		WHERE
+			u.id = #{user_id}
+		and urr.relation_id = 2
+	</select>
+  	
+  	<!-- 查询总数 -->
+  	<select id="getCountGreetingsInfo" resultType="int" parameterType="com.alibaba.util.ParamInfo">
+  		select count(1) from greetings
+  	</select>
+  	
+
+  		<!-- 设置group_concat存储大小 -->
+  	<select id="setGroupConcatMaxLen">
+  		SET SESSION group_concat_max_len = 10249999999999999999
+  	</select>
+
+  	<!-- 查询所有问候语 -->
+  	<select id="getGreetingsInfoList" resultMap="base_resultMap" parameterType="com.alibaba.util.ParamInfo">
+  		select
+			g.role_id as roleId,
+			g.`name`,
+			g.id,
+			g.nonmember_name as nonmemberName,
+			g.user_id as userId,
+			GROUP_CONCAT(distinct r.stores_id) as stores_id,
+			GROUP_CONCAT(distinct r.stores_name) as stores_name
+		from
+			(
+				select * from greetings
+				<if test="(pageNum != null and pageNum != '') and ( pageSize != null and pageSize != '' ) ">
+					limit ${pageNum}, ${pageSize}
+				</if>
+			) g
+		left join stores r on find_in_set(r.stores_id, g.role_id)
+		where FIND_IN_SET(stores_name, #{stores_names}) 
+		GROUP BY id
+  	</select>
+  	
+  	<!-- 查询门店名称是否已存在 -->
+  	<select id="getGreetingRoleName" resultType="com.alibaba.pojo.Greetings" parameterType="com.alibaba.util.ParamInfo">
+		select
+			role_id as roleId
+		from
+			greetings g
+		where find_in_set(#{stores_id}, g.role_id)
+		and id != #{id}
+  	</select>
+  	
+  	<!-- 删除问候语 -->
+  	<delete id="deleteGreetingsInfo" parameterType="com.alibaba.pojo.Greetings">
+  		delete from greetings where id = #{id}
+  	</delete>
+  	
+  	<!-- 添加问候语信息 -->
+  	<insert id="addGreetingsInfo" parameterType="com.alibaba.util.ParamInfo" useGeneratedKeys="true" keyProperty="id">
+  		insert into greetings (name, role_id, nonmember_name, user_id)
+  		values ( #{name}, #{stores_id}, #{nonmemberName}, #{user_id} )
+  	</insert>
+  	
+  	<!-- 查询某个问候语所有的门店信息 -->
+  	<select id="getGreetingsInfos" resultType="java.lang.String" parameterType="com.alibaba.pojo.Greetings">
+  		select role_id from greetings where id = #{id}
+  	</select>
+	
+	<!-- 查询要修改的问候语 -->
+	<select id="getGreetingsInfo" resultMap="base_resultMap" parameterType="com.alibaba.pojo.Greetings">
+		select
+			g.role_id as roleId,
+			g.`name`,
+			g.id,
+			g.nonmember_name as nonmemberName,
+			g.user_id as userId,
+			GROUP_CONCAT(distinct r.stores_id) as stores_id,
+			GROUP_CONCAT(distinct r.stores_name) as stores_name
+		FROM
+			greetings g
+		left join stores r on find_in_set(r.stores_id, g.role_id)
+		where FIND_IN_SET(stores_name, #{stores_names}) 
+		and g.id = #{id}
+	</select>
+	
+	<select id="getGreetingsInfo2" resultMap="base_resultMap" parameterType="com.alibaba.pojo.Greetings">
+		select
+			g.role_id as roleId,
+			g.`name`,
+			g.id,
+			g.nonmember_name as nonmemberName,
+			g.user_id as userId,
+			GROUP_CONCAT(distinct r.stores_id) as stores_id,
+			GROUP_CONCAT(distinct r.stores_name) as stores_name
+		FROM
+			greetings g
+		left join stores r on find_in_set(r.stores_id, g.role_id)
+		where FIND_IN_SET(g.role_id, #{stores_names}) 
+		and g.id = #{id}
+	</select>
+	
+	<!-- 超级逻辑判断 -->
+	<select id="getOtherRoleId" parameterType="com.alibaba.util.ParamInfo" resultType="java.lang.String">
+		select group_concat(role_id) from greetings where id != #{id} and user_id = #{user_id}
+	</select>
+	
+	<!-- 超级逻辑判断2 -->
+	<select id="getOtherRoleIdAll" parameterType="com.alibaba.util.ParamInfo" resultType="com.alibaba.pojo.Greetings">
+		select
+			role_id as roleId
+		from
+			greetings g
+		where find_in_set(#{stores_id}, g.role_id)
+	</select>
+	
+	<!-- 修改问候语 -->
+	<update id="updateGreetingsInfo" parameterType="com.alibaba.util.ParamInfo">
+		update greetings
+		<set>
+			<if test="stores_id != null and stores_id != ''">
+				role_id = #{stores_id},
+			</if>
+			<if test="name != null and name != ''">
+				name = #{name},
+			</if>
+			<if test="nonmemberName != null and nonmemberName != ''">
+				nonmember_name = #{nonmemberName},
+			</if>
+		</set>
+		where id = #{id}
+	</update>
+	
+	<!-- 查询专属问候语 -->
+	<select id="getClusiveGreetingsInfo" resultType="com.alibaba.pojo.MemberShip" parameterType="com.alibaba.util.ParamInfo">
+		select 
+			m.stores_id,
+			s.stores_name,
+			m.user_id,
+			m.user_name,
+			m.user_cards,
+			m.user_pic,
+			m.user_type,
+			m.id,
+			m.member_type,
+			(
+				case
+					when `exclusive` != '' then `exclusive`
+					else '-/-'
+				end
+			) as exclusive
+		from membership m
+		LEFT JOIN stores s ON s.stores_id = m.stores_id
+		<where>
+			and m.stores_id in ( ${content} )
+			<if test="stores_id != null and stores_id != ''">
+				and m.stores_id = #{stores_id}
+			</if>
+			<if test="keyword != null and keyword != ''">
+				and concat(user_name, user_id, user_cards) like '%${keyword}%'
+			</if>
+			<if test="isNull == '0'.toString()">
+				and exclusive != '' and exclusive is not null 
+			</if>
+			<if test="isNull == '1'.toString()">
+				and exclusive = '' or ISNULL(exclusive)
+			</if>
+		</where>
+		<if test="(pageNum != null and pageNum != '') and ( pageSize != null and pageSize != '' ) ">
+			limit ${pageNum}, ${pageSize}
+		</if>
+	</select>
+	
+	<!-- 查询总数 -->
+	<select id="getCount" resultType="int" parameterType="com.alibaba.util.ParamInfo">
+		select count(1) from membership where stores_id in ( ${content} )
+		<if test="stores_id != null and stores_id != ''">
+			and stores_id = #{stores_id}
+		</if>
+		<if test="keyword != null and keyword != ''">
+			and concat(user_name, user_id, user_cards) like '%${keyword}%'
+		</if>
+		<if test="isNull != null and isNull == '0'.toString()">
+			and exclusive != '' and exclusive is not null 
+		</if>
+		<if test="isNull != null and isNull == '1'.toString()">
+			and exclusive = '' or ISNULL(exclusive)
+		</if>
+	</select>
+	
+	<!-- 删除专属问候语 -->
+	<update id="delClusiveGreetingsInfoById" parameterType="com.alibaba.pojo.MemberShip">
+		update membership set
+		exclusive = #{aaa}
+		where user_id = #{user_id}
+	</update>
+	
+	<!-- 添加专属问候语 -->
+	<update id="addClusiveGreetingsInfoById" parameterType="com.alibaba.pojo.MemberShip">
+		update membership 
+		set exclusive = #{exclusive}
+		where user_id = #{id}
+	</update>
+	
+	<!-- 查询要修改的专属问候语 -->
+	<select id="getClusiveGreetingsInfoById" resultType="com.alibaba.pojo.MemberShip" parameterType="com.alibaba.util.ParamInfo">
+		select exclusive,user_name from membership
+		where user_id = #{user_id}
+	</select>
+	
+	<!-- 根据会员id查询门店id -->
+	<select id="getMemberByIdStoresId" resultType="java.lang.String">
+		select stores_id from membership where user_id = #{user_id}
+	</select>
+	
+	<!-- 根据门店id查询终端机id -->
+	<select id="getStoresIdByMachine" resultType="java.lang.String">
+		select machine_id from machine where stores_id = #{stores_id}
+	</select>
+	
+	<!-- 获取通用问候语绑定的门店 -->
+	<select id="getRoleIds"  resultType="java.lang.String">
+		select role_id from greetings where id = #{id}
+	</select>
+	 
+	<!-- 查询问候语 -->
+	<select id="getGreetingsName" resultType="java.lang.String">
+		select `name` from greetings where id = #{id}
+	</select>
+	
+</mapper>

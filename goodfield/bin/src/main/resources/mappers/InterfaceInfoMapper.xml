@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.alibaba.dao.InterfaceInfoMapper">
+  
+  	<!-- 批量添加会员信息 -->
+  	<insert id="saveMemberShip" parameterType="com.alibaba.pojo.MemberShip">
+  		insert into membership (
+			stores_id,
+			user_id,
+			user_name,
+			user_cards,
+			user_pic,
+			user_type,
+			member_type
+  		) values (
+  			#{stores_id},
+			#{user_id},
+			#{user_name},
+			#{user_cards},
+			#{user_pic},
+			#{user_type},
+			#{member_type}
+  		)
+  	</insert>
+  	
+  	<!-- 批量添加门店信息 -->
+  	<insert id="saveStores" parameterType="com.alibaba.pojo.Role">
+  		insert into stores (
+  			stores_id,
+  			stores_name,
+  			stores_city,
+  			stores_address
+  		) values (
+  			#{stores_id},
+			#{stores_name},
+			#{stores_city},
+			#{stores_address}
+  		)
+  	</insert>
+  	
+  	<!-- 添加非会员数据 -->
+  	<insert id="saveNonMember" parameterType="com.alibaba.pojo.NonMember">
+  		insert into non_member (
+  			stores_id,
+			user_name,
+			user_phone,
+			user_in_time
+  		) values (
+  			#{stores_id},
+			#{user_name},
+			#{user_phone},
+			#{user_in_time}
+  		)
+  	</insert>
+  	
+  	<!-- 添加入场人数统计会员信息 -->
+  	<insert id="saveAdmission" parameterType="com.alibaba.pojo.Admission">
+  		insert into admission (
+			stores_id,
+			user_id,
+			user_card,
+			user_in_time,
+			user_type,
+			appoint,
+			valid_member
+  		) values (
+  			#{stores_id},
+			#{user_id},
+			#{user_card},
+			#{user_in_time},
+			#{user_type},
+			#{appoint},
+			#{valid_member}
+  		)
+  	</insert>
+  	
+  	<!-- 添加非会员图像库 -->
+  	<insert id="saveNomemberImageLibrary" parameterType="com.alibaba.pojo.NomemberImageLibrary">
+  		insert into nomember_image_library (
+			image_name,
+			photo_time,
+			pic_path
+		) values (
+			#{image_name},
+			#{photo_time},
+			#{pic_path}
+		)
+  	</insert>
+  	
+  	<!-- 添加会员图像库 -->
+  	<insert id="saveManagementPic" parameterType="com.alibaba.pojo.ManagementPic">
+  		insert into management_pic (
+			image_name,
+			photo_time,
+			pic_path,
+			user_id,
+			running_water,
+			user_type
+		) values (
+			#{image_name},
+			#{photo_time},
+			#{pic_path},
+			#{user_id},
+			#{running_water},
+			#{user_type}
+		)
+  	</insert>
+  	
+  	<!-- 添加门店下面终端机的信息 -->
+  	<insert id="saveMachine" parameterType="com.alibaba.pojo.Machine" useGeneratedKeys="true" keyProperty="id">
+  		insert into machine (
+			machine_id,
+			stores_id,
+			machine_name
+  		) values (
+  			#{machine_id},
+			#{stores_id},
+			#{machine_name}
+  		)
+  	</insert>
+  	
+  	<!-- 查询设置终端机名称2 -->
+  	<select id="getMachineNameInfo2" parameterType="com.alibaba.pojo.Machine" resultType="java.lang.String">
+  		select machine_name from machine where stores_id = #{stores_id}
+  	</select>
+  	
+  	<!-- 查询设置终端机名称 -->
+  	<select id="getMachineNameInfo" resultType="java.lang.String" parameterType="com.alibaba.pojo.Machine">
+  		select stores_name from stores where stores_id = #{stores_id}
+  	</select>
+  	
+  	<!-- 查询终端机id是否存在 -->
+  	<select id="getMachineInfo" resultType="java.lang.String" parameterType="com.alibaba.pojo.Machine">
+  		select machine_id from machine where machine_id = #{machine_id}
+  	</select>
+  	
+  	<!-- 根据门店id查询终端机名 -->
+  	<select id="getMachineMachineNameByStoresId" resultType="com.alibaba.pojo.Machine" parameterType="com.alibaba.pojo.Machine">
+  		select machine_name from machine where stores_id = #{stores_id}
+  	</select>
+  	
+  	<!-- 根据id查询终端机的信息 -->
+  	<select id="getMachineById" parameterType="com.alibaba.pojo.Machine" resultType="com.alibaba.pojo.Machine">
+  		select  
+  			machine_id,
+			stores_id,
+			machine_name
+  		from machine
+  		where id = #{id}
+  	</select>
+  	
+</mapper>

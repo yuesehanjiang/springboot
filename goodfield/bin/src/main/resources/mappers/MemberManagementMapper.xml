@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.alibaba.dao.MemberManagementMapper">
+  
+  	<!-- 门店信息 -->
+	<resultMap id="base_resultMap" type="com.alibaba.pojo.Role">
+		<id column="stores_id" property="stores_id" />
+		<result column="stores_name" property="stores_name" />
+		<!-- 权限信息 -->
+		<collection property="relations" ofType="com.alibaba.pojo.Relation">
+			<id column="relid" property="relid" />
+			<result column="relationName" property="relationName" />
+		</collection>
+	</resultMap>
+  	
+  	<!-- 查询会员门店列表信息 -->
+	<select id="getUserRoleRelationInfo" resultMap="base_resultMap" parameterType="com.alibaba.util.ParamInfo">
+		SELECT
+			r.stores_id,
+			r.stores_name,
+			rel.relid,
+			rel.relation_name as relationName
+		FROM
+			(SELECT * FROM stores) r
+		LEFT JOIN user_role_relation urr ON urr.stores_id = r.stores_id
+		LEFT JOIN relation rel ON rel.relid = urr.relation_id
+		LEFT JOIN `user` u ON u.id = urr.user_id
+		WHERE
+			u.id = #{user_id}
+		and urr.relation_id = 3
+	</select>
+	
+	<!-- 查询会员信息 -->
+	<select id="getMemberManagementInfo" resultType="com.alibaba.pojo.MemberManagement" parameterType="com.alibaba.util.ParamInfo">
+		SELECT
+			m.id,
+			m.stores_id,
+			s.stores_name,
+			m.user_cards,
+			m.user_id,
+			m.user_name,
+			m.user_pic,
+			m.user_type,
+			m.member_type
+		FROM
+			membership m
+		LEFT JOIN stores s ON s.stores_id = m.stores_id
+		<where>
+			and m.stores_id in ( ${content} )
+			<if test="keyword != null and keyword != ''">
+				and concat(m.user_name, m.user_id, m.user_cards) like '%${keyword}%'
+			</if>
+			<if test="stores_id != null and stores_id != ''">
+				and m.stores_id = #{stores_id}
+			</if>
+		</where>
+		<if test="(pageNum != null and pageNum != '') and ( pageSize != null and pageSize != '' ) ">
+			limit ${pageNum}, ${pageSize}
+		</if>
+	</select>
+	
+	<!-- 查询总数 -->
+	<select id="getCount" parameterType="com.alibaba.util.ParamInfo" resultType="int">
+		SELECT
+			count(1)
+		FROM
+			membership m
+		LEFT JOIN stores s ON s.stores_id = m.stores_id
+		where m.stores_id in ( ${content} )
+		<if test="keyword != null and keyword != ''">
+			and concat(m.user_name, m.user_id, m.user_cards) like '%${keyword}%'
+		</if>
+		<if test="stores_id != null and stores_id != ''">
+			and m.stores_id = #{stores_id}
+		</if>
+	</select>
+    
+    <!-- 查询会员图像库 -->
+    <select id="getMemberManagementPicInfo" resultType="com.alibaba.pojo.ManagementPic" parameterType="com.alibaba.util.ParamInfo">
+		SELECT
+			id,
+			image_name,
+			pic_path,
+			user_id,
+			photo_time,
+			running_water,
+			user_type
+		FROM
+			management_pic
+		WHERE
+			user_id = #{user_id}
+		<if test="(pageNum != null and pageNum != '') and ( pageSize != null and pageSize != '' ) ">
+			limit ${pageNum}, ${pageSize}
+		</if>
+    </select>
+    
+    <!-- 查询总数 -->
+	<select id="getCount2" parameterType="com.alibaba.util.ParamInfo" resultType="int">
+		SELECT
+			count(1)
+		FROM
+			management_pic
+		WHERE
+			user_id = #{user_id}
+	</select>
+    
+</mapper>

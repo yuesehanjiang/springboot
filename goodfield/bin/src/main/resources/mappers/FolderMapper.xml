@@ -1,0 +1,459 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.alibaba.dao.FolderMapper">
+  	
+  	<resultMap id="base_resultMap" type="com.alibaba.pojo.Folder">
+  		<id column="id" property="id" />
+  		<result column="folderName" property="folderName" />
+  		<result column="roleId" property="roleId" />
+  		<result column="stores_name" property="stores_name" />
+  		<result column="machine_name" property="machine_name" />
+  		<result column="machine_id" property="machine_id" />
+  		<result column="stores_id" property="stores_id" />
+  		<result column="startTime" property="startTime" />
+  		<result column="endTime" property="endTime" />
+  		<result column="userId" property="userId" />
+  		<result column="type" property="type" />
+  		<result column="content_type" property="content_type" />
+  		<!-- 文件信息 -->
+  		<collection property="files" ofType="com.alibaba.pojo.File">
+  			<id column="fid" property="fid" />
+  			<result column="fileName" property="fileName" />
+  			<result column="filePath" property="filePath" />
+  			<result column="folderId" property="folderId" />
+  		</collection>
+  		<!-- 门店信息 -->
+  		<collection property="roles" ofType="com.alibaba.pojo.Role">
+  			<id column="stores_id" property="stores_id" />
+  			<result column="stores_name" property="stores_name" />
+  		</collection>
+  	</resultMap>
+  	
+  	<!-- 门店信息 -->
+	<resultMap id="base_resultMap2" type="com.alibaba.pojo.Role">
+		<id column="stores_id" property="stores_id" />
+		<result column="stores_name" property="stores_name" />
+		<!-- 权限信息 -->
+		<collection property="relations" ofType="com.alibaba.pojo.Relation">
+			<id column="relid" property="relid" />
+			<result column="relationName" property="relationName" />
+		</collection>
+	</resultMap>
+  	
+  	<!-- 查询文件夹所有的id -->
+  	<select id="getFoldersByIds" resultType="com.alibaba.pojo.Folder" parameterType="com.alibaba.util.ParamInfo">
+  		select id from folder where id = #{id}
+  	</select>
+  	
+  	<!-- 查询三屏管理门店列表信息 -->
+	<select id="getUserRoleRelationInfo" resultMap="base_resultMap2" parameterType="com.alibaba.util.ParamInfo">
+		SELECT
+			r.stores_id,
+			r.stores_name,
+			rel.relid,
+			rel.relation_name AS relationName
+		FROM
+			(SELECT * FROM stores) r
+		LEFT JOIN user_role_relation urr ON urr.stores_id = r.stores_id
+		LEFT JOIN relation rel ON rel.relid = urr.relation_id
+		LEFT JOIN `user` u ON u.id = urr.user_id
+		WHERE
+			u.id = #{user_id}
+		and urr.relation_id = 6
+	</select>
+	
+	<resultMap id="base_resultMap3" type="com.alibaba.pojo.Role">
+		<id column="stores_id" property="stores_id" />
+		<result column="stores_name" property="stores_name" />
+		<result column="stores_city" property="stores_city" />
+		<!-- 终端机列表 -->
+		<collection property="machines2" ofType="com.alibaba.pojo.Machine">
+			<result column="machine_id" property="machine_id" />
+			<result column="machine_name" property="machine_name" />
+		</collection>
+	</resultMap>
+	
+	<!-- 查询三屏管理门店列表以及终端机 -->
+	<select id="getstoresNameMachine" resultMap="base_resultMap3" parameterType="com.alibaba.pojo.Role">
+		SELECT
+			GROUP_CONCAT(DISTINCT r.stores_id) as stores_id,
+			GROUP_CONCAT(DISTINCT r.stores_name) as stores_name,
+			r.stores_city,
+			GROUP_CONCAT(m.machine_id) as machine_id,
+			GROUP_CONCAT(m.machine_name) as machine_name
+		FROM
+			(SELECT * FROM stores) r
+		LEFT JOIN user_role_relation urr ON urr.stores_id = r.stores_id
+		LEFT JOIN relation rel ON rel.relid = urr.relation_id
+		LEFT JOIN `user` u ON u.id = urr.user_id
+		LEFT JOIN machine m ON m.stores_id = r.stores_id
+		WHERE
+			u.id = #{user_id}
+		and urr.relation_id = 6
+		GROUP BY r.stores_city
+	</select>
+  	
+  	<!-- 查询总数 -->
+  	<select id="getCount" resultType="int" parameterType="com.alibaba.util.ParamInfo">
+  		select count(1) from (
+  			SELECT
+				f.id,
+				f.folder_name,
+				f.role_id,
+				GROUP_CONCAT(DISTINCT s.stores_name) AS stores_name,
+				GROUP_CONCAT(DISTINCT m.machine_name) AS machine_name,
+				GROUP_CONCAT(DISTINCT m.stores_id) AS stores_id,
+				f.start_time as startTime,
+				f.end_time as endTime
+			FROM
+				folder f
+			LEFT JOIN stores s ON find_in_set(s.stores_id, f.role_id)
+			LEFT JOIN machine m ON find_in_set(m.stores_id, f.role_id)
+			where f.type = #{type}
+			and f.user_id = #{user_id}
+			and content_type = #{content_type}
+			GROUP BY f.id
+		) as count
+  	</select>
+  	
+  	<!-- 查询文件夹 -->
+  	<select id="getFoldersInfoNews" resultType="com.alibaba.pojo.Folder" parameterType="com.alibaba.util.ParamInfo">
+  		SELECT
+			*
+		FROM
+			(
+				SELECT
+					f.id AS id,
+					f.folder_name AS folderName,
+					f.role_id,
+					GROUP_CONCAT(DISTINCT s.stores_name) AS stores_name,
+					GROUP_CONCAT(DISTINCT m.machine_name) AS machine_name,
+					f.machine_ids,
+					GROUP_CONCAT(DISTINCT m.stores_id) AS stores_id,
+					f.start_time AS startTime,
+					f.end_time AS endTime,
+					f.content_type
+				FROM
+					folder f
+				LEFT JOIN stores s ON find_in_set(s.stores_id, f.role_id)
+				LEFT JOIN machine m ON find_in_set(m.stores_id, f.role_id)
+				WHERE
+					f.type = #{type}
+				AND f.user_id = #{user_id}
+				AND content_type = #{content_type}
+				AND FIND_IN_SET(m.machine_id, f.machine_ids)
+				GROUP BY
+					f.id
+			) a
+		INNER JOIN (
+			SELECT
+				f.id AS id,
+				GROUP_CONCAT(DISTINCT m.machine_name) AS machine_name_all,
+				GROUP_CONCAT(DISTINCT m.machine_id) AS machine_id_all
+			FROM
+				folder f
+			LEFT JOIN stores s ON find_in_set(s.stores_id, f.role_id)
+			LEFT JOIN machine m ON FIND_IN_SET(m.stores_id, f.role_id)
+			WHERE
+				f.type = #{type}
+			AND f.user_id = #{user_id}
+			AND content_type = #{content_type}
+			GROUP BY
+				f.id
+		) AS b ON a.id = b.id
+		<if test="(pageNum != null and pageNum != '') and (pageSize != null and pageSize != '')">
+			limit ${pageNum}, ${pageSize}
+		</if>
+  	</select>
+  	
+  	<!-- 没有文件的时候查询文件夹头部信息 -->
+  	<select id="getFolderDetailsTopInfo" resultType="com.alibaba.pojo.Folder" parameterType="com.alibaba.util.ParamInfo">
+  		SELECT
+			f.id,
+			f.folder_name as folderName,
+			f.type,
+			f.content_type,
+			f.start_time as startTime,
+			f.end_time as endTime,
+			GROUP_CONCAT( DISTINCT f.role_id) as roleId,
+			GROUP_CONCAT( DISTINCT s.stores_name) as stores_name,
+			GROUP_CONCAT( DISTINCT m.machine_name) as machine_name 
+		FROM
+			folder f
+		LEFT JOIN stores s ON FIND_IN_SET(s.stores_id, f.role_id)
+		LEFT JOIN machine m ON FIND_IN_SET(m.stores_id, f.role_id)
+		WHERE
+			f.id = #{id}
+  	</select>
+  	
+  	<!-- 查询文件夹详情以及文件列表 -->
+  	<select id="getFolderDetailsFilesInfo" resultMap="base_resultMap" parameterType="com.alibaba.util.ParamInfo">
+  		SELECT
+			f.id,
+			f.user_id as userId,
+			f.start_time as startTime,
+			f.end_time as endTime,
+			f.folder_name as folderName,
+			f.role_id as roleId,
+			f.content_type as content_type,
+			f.type as type,
+			GROUP_CONCAT(distinct r.stores_id) stores_id,
+			GROUP_CONCAT(distinct r.stores_name) stores_name,
+			GROUP_CONCAT(DISTINCT m.machine_name) AS machine_name,
+			GROUP_CONCAT(DISTINCT m.machine_id) AS machine_id,
+			fi.file_name as fileName,
+			fi.file_path as filePath,
+			fi.fid,
+			fi.folder_id as folderId
+		FROM
+			(
+				select * from file
+				<if test="(pageNum != null and pageNum != '') and (pageSize != null and pageSize != '')">
+					limit ${pageNum}, ${pageSize}
+				</if>
+			) fi
+		LEFT JOIN folder f ON f.id = fi.folder_id
+		LEFT JOIN stores r ON find_in_set(r.stores_id, f.role_id)
+		LEFT JOIN stores s ON s.stores_id = f.role_id
+		LEFT JOIN machine m ON FIND_IN_SET(m.stores_id, f.role_id)
+		GROUP BY fi.fid having 1=1
+		AND
+			f.id = #{id}
+		AND f.user_id = #{user_id}
+  	</select>
+  	
+  	<!-- 查询总数 -->
+  	<select id="getCount2" resultType="int" parameterType="com.alibaba.util.ParamInfo">
+  		select count(1) from (
+  			SELECT
+				f.id,
+				f.user_id as userId,
+				f.start_time as startTime,
+				f.end_time as endTime,
+				f.folder_name as folderName,
+				f.role_id as roleId,
+				f.type,
+				GROUP_CONCAT(distinct r.stores_id) stores_id,
+				GROUP_CONCAT(distinct r.stores_name) stores_name,
+				fi.file_name as fileName,
+				fi.file_path as filePath,
+				fi.fid,
+				fi.folder_id as folderId
+			FROM
+				(
+					select * from file
+				) fi
+			LEFT JOIN folder f ON f.id = fi.folder_id
+			LEFT JOIN stores r ON find_in_set(r.stores_id, f.role_id)
+			LEFT JOIN stores s ON s.stores_id = f.role_id
+			GROUP BY fi.fid having 1=1
+			AND
+				f.id = #{id}
+			AND f.user_id = #{user_id}
+		) as count
+  	</select>
+  	
+  	<!-- 查询所有文件夹下的时间段 -->
+  	<select id="getFolderTimes" resultType="com.alibaba.pojo.Folder" parameterType="com.alibaba.pojo.Folder">
+  		select
+  			id,
+  			start_time as startTime,
+  			end_time as endTime,
+  			user_id as userId,
+  			role_id as roleId
+  		from folder
+  		where user_id = #{userId}
+  		and type = #{type}
+  	</select>
+  	
+  	<!-- 查询所有时间段 -->
+  	<select id="getTimes" resultType="com.alibaba.pojo.Folder">
+  		select
+  			id,
+  			start_time as startTime,
+  			end_time as endTime,
+  			user_id as userId,
+  			role_id as roleId
+  		from folder
+  	</select>
+  	
+  	<!-- 查询所有文件夹下的时间段  修改 -->
+  	<select id="getFolderTimes2" resultType="com.alibaba.pojo.Folder" parameterType="com.alibaba.pojo.Folder">
+  		select
+  			id,
+  			start_time as startTime,
+  			end_time as endTime,
+  			user_id as userId,
+  			role_id as roleId
+  		from folder
+  		where user_id = #{user_id}
+  		and type = #{type}
+  		and id != #{id}
+  	</select>
+  	
+  	<!-- 查询所有文件夹下的终端机 -->
+  	<select id="getMachineIds" resultType="com.alibaba.pojo.Folder">
+  		SELECT group_concat(f.machine_ids) as machine_ids FROM folder f
+  	</select>
+  	
+  	<!-- 根据结束时间批量修改文件夹播放状态 -->
+  	<update id="updateFolderStatusInfos" parameterType="com.alibaba.util.ParamInfo">
+  		update folder set
+  		status = 0
+  		where id in ( ${content} )
+  	</update>
+  	
+  	<!-- 查询不限时间的文件夹 -->
+  	<select id="getFolderUnlimitedTime" resultType="java.lang.String">
+  		SELECT
+			GROUP_CONCAT(f.machine_ids) AS machine_ids
+		FROM
+			folder f
+		WHERE
+			f.unlimited_time = 0
+  	</select>
+  	
+  	<!-- 创建文件夹 -->
+  	<insert id="saveFolder" parameterType="com.alibaba.pojo.Folder">
+  		insert into folder (
+			folder_name,
+			role_id,
+			<if test="unlimited_time == '1'.toString()">
+				start_time,
+				end_time,
+			</if>
+			user_id,
+			type,
+			status,
+			content_type,
+			machine_ids,
+			unlimited_time
+  		) values (
+  			#{folderName},
+			#{roleId},
+			<if test="unlimited_time == '1'.toString()">
+				#{startTime},
+				#{endTime},
+			</if>
+			#{userId},
+			#{type},
+			#{content_type},
+			#{content_type},
+			#{machine_ids},
+			#{unlimited_time}
+  		)
+  	</insert>
+  	
+  	<!-- 查询要修改的文件夹 -->
+  	<select id="getFolderById" parameterType="com.alibaba.pojo.Folder" resultType="com.alibaba.pojo.Folder">
+  		select 
+  			f.id,
+  			f.folder_name as folderName,
+			f.role_id as roleId,
+			f.start_time as startTime,
+			f.end_time as endTime,
+			f.user_id as userId,
+			GROUP_CONCAT(distinct r.stores_id) stores_id,
+			GROUP_CONCAT(distinct r.stores_name) stores_name,
+			GROUP_CONCAT(DISTINCT m.machine_name) AS machine_name,
+			GROUP_CONCAT(DISTINCT m.machine_id) AS machine_id,
+			f.type
+		from folder f
+		LEFT JOIN stores r ON find_in_set(r.stores_id, f.role_id)
+		LEFT JOIN machine m ON FIND_IN_SET(m.stores_id, f.role_id)
+		where f.id = #{id}
+  		and f.type = #{type}
+		and f.user_id = #{user_id} 
+  	</select>
+  	
+  	<!-- 编辑文件夹 -->
+  	<update id="updateFolder" parameterType="com.alibaba.pojo.Folder">
+  		update folder
+  		<set>
+  			<if test="folderName != null and folderName != ''">
+  				folder_name = #{folderName},
+  			</if>
+  			<if test="roleId != null and roleId != ''">
+  				role_id = #{roleId},
+  			</if>
+  			<if test="startTime != null and startTime != ''">
+  				start_time = #{startTime},
+  			</if>
+  			<if test="endTime != null and endTime != ''">
+  				end_time = #{endTime},
+  			</if>
+  			<if test="machine_ids != null and machine_ids != ''">
+  				machine_ids = #{machine_ids},
+  			</if>
+  		</set>
+  		where id = #{id}
+  		and type = #{type}
+  		and user_id = #{user_id}
+  	</update>
+  	
+  	<!-- 删除文件夹 -->
+  	<delete id="deleteFolder" parameterType="com.alibaba.pojo.Folder">
+  		delete from folder
+  		where id = #{id}
+  		and type = #{type}
+  		and user_id = #{user_id}
+  	</delete>
+  	
+  	<!-- 批量删除文件 -->
+  	<delete id="deleteFolderFiles" parameterType="com.alibaba.pojo.File">
+  		delete from file
+		where folder_id = #{folderId}
+		and fid in ( ${fid} )
+  	</delete>
+  	
+  	<!-- 查询该文件夹内容的类型 -->
+  	<select id="getFolderContentType" resultType="java.lang.String" parameterType="com.alibaba.util.ParamInfo">
+  		select content_type from folder where id = #{id}
+  	</select>
+  	
+  	<!-- 上传文件 -->
+  	<insert id="uploadFiles" parameterType="com.alibaba.pojo.File">
+  		insert into file (
+  			file_name,
+  			file_path,
+  			folder_id
+  		) values (
+  			 #{fileName},
+  			 #{filePath}, 
+  			 #{folderId} 
+  		)
+  	</insert>
+  	
+  	<!-- 修改文件夹播放状态 -->
+  	<update id="updateFolderStatus" parameterType="com.alibaba.pojo.File">
+  		update folder
+  		set status = #{status}
+  		where user_id = #{user_id}
+  		and type = #{type}
+  		and id = #{id}
+  	</update>
+  	
+  	<!-- 查询要推送的数据 -->
+  	<select id="getMachineInfo" resultType="com.alibaba.pojo.Machine" parameterType="com.alibaba.pojo.Machine">
+  		SELECT
+			m.machine_id,
+			m.stores_id,
+			m.machine_name,
+			f.type as screen,
+			GROUP_CONCAT(fi.file_path) as file_path,
+			f.start_time,
+			f.end_time,
+			f.status
+		FROM
+			machine m
+		LEFT JOIN folder f ON FIND_IN_SET(m.stores_id, f.role_id)
+		LEFT JOIN file fi ON fi.folder_id = f.id
+		GROUP BY
+			m.machine_id
+		having 1=1
+		and f.type = ${type}
+		and f.status = 1
+		and m.machine_id = ${machine_id}
+  	</select>
+	
+</mapper>

@@ -1,0 +1,542 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.alibaba.dao.FileUploadMapper">
+	<resultMap id="base_resultMap" type="com.alibaba.pojo.Folder">
+		<id column="id" property="id" />
+		<result column="folderName" property="folderName" />
+		<result column="stores_name" property="stores_name" />
+		<result column="stores_id" property="stores_id" />
+		<result column="startTime" property="startTime" />
+		<result column="endTime" property="endTime" />
+		<result column="type" property="type" />
+		<result column="content_type" property="content_type" />
+		<result column="unlimited_time" property="unlimited_time" />
+		<result column="live_status" property="live_status" />
+		<result column="rePlayDate" property="rePlayDate" />
+		<!-- pushstatus 表 -->
+		<association property="pushStatus" javaType="com.alibaba.pojo.PushStatus1">
+
+			<result column="machine_is_delete" property="machine_is_delete" />
+			<result column="is_ting" property="is_ting" />
+		</association>
+		<!-- 文件信息 -->
+		<collection property="files" ofType="com.alibaba.pojo.File">
+			<id column="fid" property="fid" />
+			<result column="fileName" property="fileName" />
+			<result column="filePath" property="filePath" />
+			<result column="file_size" property="file_size" />
+		</collection>
+	</resultMap>
+
+
+
+	<!-- //改变 终端机的状态 void updatePushStatus(@Param("machineId")String machineId, 
+		@Param("staus")Integer staus); -->
+	<update id="updatePushStatus">
+		UPDATE
+		`push_status`
+		SET
+		`status` = 0,
+		`is_ting` =
+		#{staus}
+		WHERE `folder_id` =#{floder}
+		and
+		`device_id`=#{machineId}
+	</update>
+
+
+	<!-- //删除pushtatus中的 machineId 和 folderId void deletePushStatus(@Param("machieId")String 
+		machieId, @Param("folderId")String folderId); -->
+	<delete id="deletePushStatus">
+		delete from
+		`push_status`
+		WHERE folder_id=
+		#{folderId}
+		<if test="machieId !=null and machieId!=''">
+			and device_id=#{machieId}
+		</if>
+	</delete>
+
+
+	<!-- //该问价夹表的数据 void updateFolder_live_status(@Param("folderid")String folderid); -->
+	<update id="updateFolder_live_status">
+		UPDATE
+		`folder`
+		SET
+		`live_status` =0
+		WHERE `id`
+		=
+		#{folderid}
+
+
+
+	</update>
+
+	<!--//得到文件夹中文件的数量 Integer selectCountFile(@Param("folderid")String folderId); -->
+	<select id="selectCountFile" resultType="java.lang.Integer">
+		SELECT
+		IFNULL(COUNT(*),
+		0) AS COUNT
+		FROM
+		`file`
+		WHERE folder_id = #{folderid}
+	</select>
+
+
+	<!--//改吧pushstatu中 void update_isDelete_statusi(@Param("machineId")String 
+		machineId, @Param("folderid")String floderid); -->
+	<update id="update_isDelete_statusi">
+
+
+		UPDATE
+		`push_status`
+		SET
+		`status` = 0,
+		`is_ting` = 1,
+		machine_is_delete=1
+		WHERE `folder_id` =#{folderid}
+		AND
+		`device_id`=#{machineId} AND `machine_is_delete` = 0
+
+	</update>
+
+
+	<!-- //启用时候的 推送s floderId Folder selectFileByFloderid(@Param("floderId")String 
+		floderId, @Param("machineId")Object object); -->
+	<!-- List<Map> selectFileByFloderid(String floderid); //根据文件夹id 查找可以推送的 
+		s文件 s machineId -->
+	<select id="selectFileByFloderid" resultMap="base_resultMap">
+		SELECT
+		f.id,
+
+		p.`machine_is_delete`, p.is_ting,
+		f.folder_name AS
+		folderName,
+		IFNULL(f.start_time, "") AS
+		startTime,
+		IFNULL(f.end_time, "")
+		AS endTime,
+		f.type,
+		(
+		case unlimited_time
+		when 2 then 1
+		else 0
+		end
+		) as
+		unlimited_time,
+		f.content_type,
+		f.live_status,
+		fi.fid,
+		fi.file_name AS
+		fileName,
+		fi.file_path AS
+		filePath,
+		ROUND(fi.file_size /1024/ 1024.0,2)
+		AS
+		file_size,
+		f.update_time,f.rePlayDate
+		FROM
+		folder f
+		LEFT JOIN `file` fi
+		ON fi.folder_id
+		= f.id
+		LEFT JOIN
+		`push_status` p ON p.folder_id=f.id
+		WHERE f.end_time >NOW()
+		-- AND
+		--
+		--
+		DATE_ADD(f.start_time , INTERVAL 2
+		HOUR) &lt;=
+		-- f.end_time
+		-- and
+		--
+		--
+		DATE_ADD(now() , INTERVAL 4 HOUR)
+		&lt;= f.start_time
+		<if test="floderId !=null and floderId != ''">
+			AND
+			f.id =
+			#{floderId}
+		</if>
+
+		<if test="machineId !=null and machineId !='' ">
+			AND p.device_id =#{machineId}
+		</if>
+
+		HAVING SUBSTR(NOW(),1,10)=SUBSTR(startTime,1,10)
+
+	</select>
+
+
+	<!-- //gaifile 表中数据 void updateFile_pushIs(@Param("folderId")String folderId, 
+		@Param("pushis")String pushis); -->
+	<update id="updateFile_pushIs">
+		UPDATE
+		`folder`
+		SET
+		`push_is` = #{pushis}
+		WHERE
+		`id` =
+		#{folderId}
+
+	</update>
+
+
+	<!--//改floder表的状态 void updateFolderStatus(@Param("folderId")String floderid, 
+		@Param("status")String status); -->
+
+	<update id="updateFolderStatus">
+		UPDATE
+		`folder`
+		SET
+		`status` = #{status}
+
+		WHERE
+		`id` =
+		#{folderId}
+
+	</update>
+
+
+
+	<!-- //根据 门店的id 来查找List<Folder> selectFolderBYStoreid(@Param("stores_id")String 
+		stores_id, @Param("type")String type,@Param("floderId")String floderId) -->
+	<select id="selectFolderBYStoreid" resultType="com.alibaba.pojo.Folder">
+		SELECT
+		id,
+		`folder_name`
+		as folderName ,
+		start_time as startTime,
+		rePlayDate,
+
+		end_time
+		as
+		endTime,rePlayTime
+		FROM `folder` WHERE `gym_addr` LIKE
+		"%${gymAddr}%"
+		and status
+		="1" and live_status="1"
+		<if test="screenType !=null and screenType !=''">
+			and screen_type=#{screenType}
+		</if>
+		<if test="floderId !=null and floderId !=''">
+			and id != #{floderId}
+
+		</if>
+
+		<if test="unTime !=null and unTime !=''">
+			and unlimited_time=#{unTime}
+		</if>
+		
+	</select>
+
+
+	<!--//让pushtatus 表中的isting改变 void updatePushStatsIsting(@Param("floderid")String 
+		floderid, @Param("isTing")String string); -->
+	<update id="updatePushStatsIsting">
+		UPDATE
+		`push_status`
+		SET
+
+		`status` = "0",
+		`is_ting` =
+		#{isTing}
+
+		WHERE `folder_id` = #{floderid}
+
+	</update>
+
+
+
+
+	<!-- //拿到所有的filePath List<String> selectFileByfolderId(@Param("floderid")String 
+		folderid); -->
+	<select id="selectFileByfolderId" resultType="java.lang.String">
+		select file_path from `file`
+		where 1=1
+		<if test="floderid !=null and floderid !=''">
+			and folder_id=#{floderid}
+		</if>
+
+		<if test="fid !=null and fid !=''">
+			and fid=#{fid}
+		</if>
+	</select>
+
+
+
+	<!-- //找存在的问价夹 List<Folder> selectFolerIsLive(@Param("liveStauts")String 
+		liveStatus); -->
+
+	<select id="selectFolerIsLive" resultType="com.alibaba.pojo.Folder">
+		SELECT
+		*
+		FROM
+		`folder`
+		WHERE
+		live_status="1"
+
+
+
+
+	</select>
+
+
+
+
+	<!-- //查出过期数据 List<LinkedHashMap<String, Object>> selectDateFolder(); -->
+	<select id="selectDateFolder" resultType="java.util.LinkedHashMap">
+		SELECT
+		*
+		FROM
+		`folder` f
+		HAVING DATE_ADD( SUBSTR(f.`end_time`,1,10), INTERVAL 15 DAY)
+		&lt;=SUBSTR(NOW(),1,10);
+	</select>
+
+
+
+	<!-- //终端机删除文件时候的 监控 void insertPushstaus(@Param("machine_id")String machine_id, 
+		@Param("folder_id")String folder_id, @Param("type")String type); -->
+	<insert id="insertPushstaus">
+		insert into `push_status` (
+
+		`folder_id`,
+		`device_id`,
+		`type`,
+		is_terminal_del
+		)
+		values
+		(
+		#{folder_id},
+		#{machine_id},
+		#{type},
+		#{is_terminal_del}
+		)
+	</insert>
+
+
+	<!-- //查找被删除的数据 给前端使用 List<LinkedHashMap<String, Object>> selectMacheIdAndName(@Param("folder_id") 
+		String folder_id, @Param("type") String type); -->
+
+	<select id="selectMacheIdAndName" resultType="java.util.LinkedHashMap">
+		SELECT
+		device_id,
+		(SELECT
+		machine_name
+		FROM
+		`machine`
+		WHERE machine_id = p.device_id
+		LIMIT 0,
+		1) AS machieName
+		FROM
+		`push_status` p
+		LEFT JOIN machine m
+		ON
+		m.`machine_id` = p.`device_id`
+		LEFT JOIN `user_role_relation` ur
+		ON
+		ur.`stores_id` = m.`stores_id`
+		WHERE p.`type` = #{type}
+		AND
+		p.is_terminal_del = "0"
+		AND p.`status` = 0 and p.ido=1
+		AND p.folder_id =
+		#{folder_id}
+		AND ur.`user_id` = #{userId}
+		GROUP BY p.`device_id`
+
+	</select>
+
+
+	<!--//该machine表数据 void pushTerminaIsDel(UserFolder userFolder); void pushTerminaIsDel(@Param("floderId")String 
+		floderId,@Param("machineId")String machineId); -->
+
+	<update id="pushTerminaIsDel" parameterType="com.alibaba.pojo.UserFolder">
+		update
+		`machine`
+		set
+		machine_del_status=0
+		WHERE machine_id=#{machineId} AND
+		stores_id=#{floderId}
+
+
+	</update>
+
+
+
+
+
+	<!--//查找所有被删除的数据 List<LinkedHashMap<String, Object>> selectByDelFolder(@Param("type")String 
+		type, @Param("user_id")String user_id); -->
+
+	<select id="selectByDelFolder" resultType="java.util.LinkedHashMap">
+		SELECT DISTINCT
+		device_id AS machine_id,
+		(SELECT
+		machine_name
+		FROM
+		`machine`
+		WHERE machine_id = p.device_id
+		LIMIT 0, 1) AS machine_name,
+		folder_id
+		FROM
+		`push_status` p
+		LEFT JOIN machine m
+		ON m.`machine_id` =
+		p.`device_id`
+		LEFT JOIN `user_role_relation` ur
+		ON ur.`stores_id` =
+		m.`stores_id`
+		WHERE 1=1
+		<if test="type !=null and type!=''">
+			and p.`type` = #{type}
+		</if>
+		AND p.is_terminal_del = "0"
+		AND p.`status` = 0
+		AND ur.`user_id` =
+		#{user_id}
+		<if test="folderId !=null and folderId !=''">
+			and p.folder_id=#{folderId}
+		</if>
+
+	</select>
+
+	<!-- //处理我是不是看了已经删除的弹框 void updatePushStatustoIdo(@Param("type") String 
+		string, @Param("folder_id")String folder_id); -->
+
+	<update id="updatePushStatustoIdo">
+		UPDATE
+		`push_status`
+		SET
+		`ido` = 0
+		WHERE
+		folder_id=#{folder_id}
+	</update>
+
+
+
+	<!-- //没有读的已经删除的数据 List<LinkedHashMap<String, Object>> selectByDelFolderGolal(@Param("user_id")String 
+		user_id, @Param("idian")int idian); -->
+	<select id="selectByDelFolderGolal" resultType="java.util.LinkedHashMap">
+		SELECT DISTINCT
+		p.id,
+		device_id AS machine_id,
+		(SELECT
+		machine_name
+		FROM
+		`machine`
+		WHERE machine_id = p.device_id
+		LIMIT 0, 1) AS machine_name,
+		folder_id
+		FROM
+		`push_status` p
+		LEFT JOIN machine m
+		ON m.`machine_id` =
+		p.`device_id`
+		LEFT JOIN `user_role_relation` ur
+		ON ur.`stores_id` =
+		m.`stores_id`
+		WHERE 1=1
+
+		AND p.is_terminal_del = "0"
+		AND p.`status` = 0
+		AND ur.`user_id` =
+		#{user_id}
+		<if test="idian !=null and idian !='' ">
+			and p.idian =#{idian}
+		</if>
+	</select>
+
+	<!-- //修改我点击的状态 void updateIsDian(@Param("id")Integer id); -->
+
+	<update id="updateIsDian">
+		UPDATE
+		`push_status`
+		SET
+
+		`idian` = 0
+		where id=#{id}
+
+	</update>
+
+
+	<!-- //删除stuts 为1 的 数据 void delete_by_staus(@Param("status")int status); -->
+
+	<delete id="delete_by_staus">
+		DELETE
+		FROM
+		`push_status`
+		WHERE `status` = #{status}
+	</delete>
+
+
+	<!-- 上传文件 return fileUploadMapper.upload(file); -->
+	<insert id="upload" parameterType="com.alibaba.pojo.File">
+		INSERT INTO `gym`.`file` (
+
+		`file_name`,
+		`file_path`,
+		`folder_id`,
+		`file_size`,
+		`original_name`
+		)
+		VALUES
+		(
+
+		#{fileName},
+		#{filePath},
+		#{folderId},
+		#{fileSize},
+		#{originalName}
+		)
+
+
+
+	</insert>
+
+
+
+	<!-- //批量插入图片的上chuang int uploadByList(@Param("list")List<File> lists); -->
+	<insert id="uploadByList">
+		INSERT INTO `gym`.`file` (
+
+		`file_name`,
+		`file_path`,
+		`folder_id`,
+		`file_size`,
+		`original_name`
+		)
+		VALUES
+		<foreach collection="list" item="list" separator=",">
+			(
+
+			#{list.fileName},
+			#{list.filePath},
+			#{list.folderId},
+			#{list.fileSize},
+			#{list.originalName}
+			)
+		</foreach>
+	</insert>
+
+
+	<!-- // 文件的名字 是不是重复 List<String> selectFolerIsLiveByFloderId(Folder folder); -->
+	<select id="selectFolerIsLiveByFloderId" resultType="java.lang.String">
+		SELECT
+		`folder_name` AS folderName
+		FROM
+		`folder`
+		WHERE `gym_addr` = #{gymAddr}
+		AND `live_status` = 1
+		AND `folder_name` = #{folderName}
+	   <if test="id !=null and id !='' ">
+	     and id !=#{id}
+	   </if>	
+		
+	</select>
+
+
+</mapper>
+  	

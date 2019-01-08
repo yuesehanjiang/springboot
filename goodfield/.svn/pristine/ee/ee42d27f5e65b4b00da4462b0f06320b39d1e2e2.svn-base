@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.alibaba.dao.CountMapper">
+	<!-- Integer selectAllcount(@Param("machineId")String machineId); //查找公司的 
+		所有数据 -->
+
+
+	<select id="selectAllcount" resultType="java.lang.Integer">
+		SELECT
+		IFNULL (COUNT(*)
+		,0) as count
+		FROM
+		`membership`
+		WHERE stores_id =
+		(SELECT
+		stores_id
+		FROM
+		`machine`
+		WHERE `machine_id` = #{machineId})
+
+	</select>
+
+
+	<!-- //查询15天以内 的会员和非会员 信息 Map selectMebers(@Param("status")Integer status, 
+		@Param("machineId")String machineId); -->
+	<select id="selectMebers" resultType="java.util.Map">
+		SELECT
+		IFNULL(COUNT(*), 0)
+		AS COUNT,
+		SUBSTR(`user_in_time`, 1, 10) AS dates
+		FROM
+		`admission` a
+		LEFT
+		JOIN `management_pic` p
+		ON p.`user_id` = a.`user_id`
+		WHERE `stores_id` =
+		(SELECT DISTINCT
+		`stores_id`
+		FROM
+		`machine`
+		WHERE `machine_id` =
+		#{machineId})
+		AND
+		`user_in_time` BETWEEN CURDATE() - INTERVAL 30 DAY
+		AND
+		CURDATE()
+		AND
+		p.`user_type` = #{status}
+		GROUP BY dates
+	</select>
+
+
+
+	<!-- //查询非 会员 信息 Map slectNonMember(@Param("machineId")String machineId); -->
+	<select id="slectNonMember" resultType="java.util.Map">
+
+		SELECT
+		IFNULL(COUNT(*), 0)
+		AS COUNT,
+		SUBSTR(`user_in_time`, 1, 10) AS dates
+		FROM
+		`non_member` n
+		WHERE n.`stores_id` =
+		(SELECT
+		`stores_id`
+		FROM
+		`machine`
+		WHERE `machine_id`
+		= "device005")
+		AND `user_in_time` BETWEEN CURDATE() - INTERVAL 15 DAY
+		AND CURDATE()
+
+	</select>
+
+
+	<!-- String selectGreetings(@Param("status")int status, @Param("stores_id") 
+		String stores_id);//查找问候语 -->
+	<select id="selectGreetings" resultType="java.lang.String">
+		SELECT
+		`name`
+		FROM
+		`greetings`
+		WHERE role_id like "%${stores_id}%"
+	</select>
+
+
+	<!--String selectGreetingsnon(@Param("status")int status,@Param("stores_id") 
+		String stores_id); //非会员问候与 -->
+
+	<select id="selectGreetingsnon" resultType="java.lang.String">
+		SELECT
+		`nonmember_name`
+		FROM
+		`greetings`
+		WHERE role_id  like "%${stores_id}%"
+	</select>
+
+
+
+	<!--//终端机是不是 有用户关联 List<Map> selectMaps(@Param("account")String account, 
+		@Param("machine_id")String machine_id); -->
+
+
+
+	<select id="selectMaps" resultType="java.util.Map">
+		SELECT
+		stores_id
+		FROM
+		`machine`
+		WHERE `machine_id` = #{machine_id}
+		AND EXISTS
+		(SELECT
+		`stores_id`
+		FROM
+		`user_role_relation`
+		WHERE `user_id` =
+		(SELECT
+		id
+		FROM
+		`user`
+		WHERE phone = #{account}))
+	</select>
+
+</mapper>
