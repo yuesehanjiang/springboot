@@ -1,0 +1,33 @@
+package com.yun.service.impl;
+
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.yun.mapper.CourseMapper;
+import com.yun.pojo.Course;
+import com.yun.service.CourseService;
+@Service
+@Transactional
+public class CourseServiceIml implements CourseService {
+	@Autowired
+	private CourseMapper courseMapper;
+	
+    //新增课程
+	@Override
+	public void courseadd(Course course) {
+	     //删除以改俱乐部的 数据
+		courseMapper.delCourseByGymArr(course);
+		courseMapper.courseadd(course);
+		
+	}
+
+	
+   //根据门店找课程表
+	@Override
+	public Course courfind(Course course) {
+    	return	courseMapper.courfind(course);
+	}
+
+}

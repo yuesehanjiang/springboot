@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yun.mapper.ClubMapper">
+	
+	 <!-- 添加新门店信息 -->
+    <insert id="saveClubInfo">
+        insert into club (
+            club_id,
+            club_pid,
+            club_name,
+            gym_addr,
+            address,
+            gym_logo,
+            company_name,
+            contact,
+            gym_about
+        ) values (
+            #{clubId},
+            #{clubPid},
+            #{clubName},
+            #{gymAddr},
+            #{address},
+            #{gymLogo},
+            #{companyName},
+            #{contact},
+            #{gymAbout}
+        )
+    </insert>
+    
+    <!-- 根据gymAddr获取门店信息-->
+    <select id="getClubByGymAddr" resultType="Club">
+        SELECT
+            club_id,
+            club_pid,
+            club_name,
+            gym_addr,
+            address,
+            gym_logo,
+            company_name,
+            contact,
+            gym_about
+        FROM
+            club
+        WHERE
+            gym_addr = #{gymAddr}
+    </select>
+	
+	<!-- 修改门店信息信息 -->
+    <update id="updateClubInfo">
+        update club
+        <set>
+            <if test="clubName != null and clubName != ''">
+                club_name = #{clubName},
+            </if>
+            <if test="address != null and address != ''">
+                address = #{address},
+            </if>
+            <if test="gymLogo != null and gymLogo != ''">
+                gym_logo = #{gymLogo},
+            </if>
+            <if test="companyName != null and companyName != ''">
+                company_name = #{companyName},
+            </if>
+            <if test="contact != null and contact != ''">
+                contact = #{contact},
+            </if>
+             <if test="gymAbout != null and gymAbout != ''">
+                gym_about = #{gymAbout},
+            </if>
+        </set>
+        where gym_addr = #{gymAddr}
+    </update>
+    
+    <!-- 刪除教练 -->
+    <delete id="deleteClubInfo">
+        delete from club where gym_addr = #{gymAddr}
+    </delete>
+
+</mapper>

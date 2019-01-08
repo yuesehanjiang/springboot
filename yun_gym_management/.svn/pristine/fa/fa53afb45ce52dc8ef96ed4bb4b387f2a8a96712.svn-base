@@ -1,0 +1,11 @@
+package com.yun.service;
+
+import java.util.HashMap;
+
+import com.yun.pojo.User;
+
+public interface UserService {
+
+    HashMap<String, Object> sendUserToMachine(User user);
+
+}

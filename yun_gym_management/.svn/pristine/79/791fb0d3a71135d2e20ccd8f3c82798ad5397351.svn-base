@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yun.mapper.CoachMapper">
+	
+	<!-- 修改点赞数 -->
+	<update id="addVote">
+		update coach set vote = vote+1 where id = #{value} 
+	</update>
+	
+	<!-- 查询所有教练 -->
+	<select id="listCoachInfo" resultType="Coach">
+		SELECT
+			id,
+			`name`,
+			sex,
+			image,
+			introduction,
+			train_content as trainContent,
+			gym_addr as gymAddr,
+			rank,
+			vote
+		FROM
+			coach
+		where gym_addr = #{gymAddr}
+		order by create_time desc
+		limit ${pageNum}, ${pageSize}
+	</select>
+	
+	<!-- 根据id查询教练 -->
+	<select id="getCoachById" resultType="Coach">
+		SELECT
+			id,
+			`name`,
+			sex,
+			introduction,
+			train_content as trainContent,
+			image,
+			rank
+		FROM
+			coach
+		WHERE
+			id = #{value}
+	</select>
+	
+	<!-- 修改教练信息 -->
+	<update id="updateCoach">
+		update coach
+		<set>
+			<if test="name != null and name != ''">
+				name = #{name},
+			</if>
+			<if test="sex != null and sex != ''">
+				sex = #{sex},
+			</if>
+			<if test="introduction != null and introduction != ''">
+				introduction = #{intro。duction},
+			</if>
+			<if test="trainContent != null and trainContent != ''">
+				train_content = #{trainContent},
+			</if>
+			<if test="image != null and image != ''">
+				image = #{image},
+			</if>
+			<if test="rank != null and rank != ''">
+				rank = #{rank},
+			</if>
+		</set>
+		where id = #{id}
+	</update>
+	
+	<!-- 刪除教练 -->
+	<delete id="delCoach">
+		delete from coach where id = #{value}
+	</delete>
+	
+	<!-- 查询教练总数 -->
+	<select id="getCoachCount" resultType="int">
+		select count(1) from coach
+		where gym_addr = #{gymAddr}
+	</select>
+	
+	<!-- 教练保持在50 -->
+	<select id="getCoachCountByGymAddr" resultType="int">
+		select count(1) from coach where gym_addr = #{value}
+	</select>
+	
+	<!-- 查询最小的时间 -->
+	<select id="getMinCreateTime" resultType="string">
+		select min(create_time) from coach where gym_addr = #{value}
+	</select>
+	
+	<!-- 删除最前面新增的图片 -->
+	<delete id="deleteCoachByCreate">
+		delete from coach where gym_addr = #{gymAddr} and create_time = #{createTime}
+	</delete>
+	
+	<!-- 新增教练 -->
+	<insert id="saveCoach">
+		insert into coach (
+			name,
+			sex,
+			image,
+			introduction,
+			train_content,
+			create_time,
+			gym_addr,
+			rank
+		) values (
+			#{name},
+			#{sex},
+			#{image},
+			#{introduction},
+			#{trainContent},
+			now(),
+			#{gymAddr},
+			#{rank}
+		)
+	</insert>
+
+</mapper>

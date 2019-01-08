@@ -1,0 +1,6 @@
+package com.yun.mapper;
+
+
+public interface MachineManagementMapper {
+
+}

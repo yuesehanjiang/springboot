@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yun.mapper.AppUrlMapper">
+    
+     <!-- 添加新的小程序url -->
+    <insert id="saveAppUrl">
+        insert into app_url (
+            gym_addr,
+            url,
+            create_time,
+            bracelet_url,
+            register_url
+        ) values (
+            #{gymAddr},
+            #{url},
+            now(),
+            #{braceletUrl},
+            #{registerUrl}
+        )
+    </insert>
+    
+    <!-- 修改小程序url-->
+    <update id="updateAppUrl">
+        update app_url
+        <set>
+            <if test="url != null and url != ''">
+                url = #{url},
+            </if>
+            <if test="braceletUrl != null and braceletUrl != ''">
+                bracelet_url = #{braceletUrl},
+            </if>
+            <if test="registerUrl != null and registerUrl != ''">
+                register_url = #{registerUrl},
+            </if>
+            update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+    
+    <!-- 根据gymAddr获取机器码列表-->
+    <select id="getMachineListByGymAddr" resultType="String">
+        SELECT
+            machine_code
+        FROM
+            machine
+        WHERE
+            gym_addr = #{gymAddr}
+    </select>
+    
+    <!-- 根据gymAddr获取机器码列表-->
+    <select id="getAppUrlByGymAddr" resultType="AppUrl">
+        SELECT
+            id,
+            gym_addr as gymAddr,
+            url,
+            create_time as createTime,
+            update_time as updateTime,
+            bracelet_url as braceletUrl,
+            register_url as registerUrl
+        FROM
+            app_url
+        WHERE
+            gym_addr = #{gymAddr}
+    </select>
+
+</mapper>

@@ -1,0 +1,28 @@
+package com.yun.controller;
+
+import java.util.HashMap;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.yun.service.UserFaceService;
+
+@RestController
+public class UserFaceController {
+
+    
+    @Autowired
+    private UserFaceService userService;
+    
+    /**
+     * 添加人脸
+     * @return
+     */
+    @PostMapping("/machine/saveUserFace")
+    public HashMap<String, Object> saveUserFace(){
+        return null;
+    }
+    
+    
+}

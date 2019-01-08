@@ -1,0 +1,15 @@
+package com.yun.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.yun.mapper.UserFaceMapper;
+import com.yun.service.UserFaceService;
+
+@Service
+public class UserFaceServiceImpl implements UserFaceService{
+    
+    @Autowired
+    private UserFaceMapper userFaceMapper;
+
+}

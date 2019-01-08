@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yun.mapper.UserExperienceMapper">
+	
+	<!-- 添加体验手机号 -->
+	<insert id="saveUniqueCache">
+		insert into unique_cache(
+			phone,
+			gym_addr
+		) values (
+			#{phone},
+			#{gymAddr}
+		)
+	</insert>
+	
+	<!-- 查询是否有该手机号 -->
+	<select id="getUniqueCachePhone" resultType="string">
+		select phone from unique_cache where phone = #{phone} and gym_addr = #{gymAddr}
+	</select>
+	
+	<!-- 查询客服体验数据 -->
+	<select id="listUserExperience" resultType="UserExperience">
+		SELECT
+			id,
+			name,
+			phone,
+			date_format(create_time, '%Y-%m-%d %H:%i:%S') as createTime,
+			introduce_person as introducePerson
+		FROM
+			user_experience
+		where gym_addr = #{gymAddr}
+		<if test="keyword != null and keyword != ''">
+			and concat(name,phone,introduce_person) like CONCAT('%',#{keyword},'%') 
+		</if>
+		<if test="dateTime != null and dateTime != ''">
+			and date(create_time) = #{dateTime}
+		</if>
+		<if test="startTime != null and startTime != '' and endTime != null and endTime != ''">
+			and date(create_time) between #{startTime} and #{endTime}
+		</if>
+		order by create_time desc
+		limit ${pageNum}, ${pageSize}
+	</select>
+	
+	<!-- 查询客服体验数据总数 -->
+	<select id="getUserExperienceCount" resultType="int">
+		select count(1) from user_experience
+		<where>
+			and gym_addr = #{gymAddr}
+			<if test="keyword != null and keyword != ''">
+				and concat(name,phone,introduce_person) like CONCAT('%',#{keyword},'%') 
+			</if>
+			<if test="dateTime != null and dateTime != ''">
+				and date(create_time) = #{dateTime}
+			</if>
+			<if test="startTime != null and startTime != '' and endTime != null and endTime != ''">
+				and date(create_time) between #{startTime} and #{endTime}
+			</if>
+		</where>
+	</select>
+	
+	<!-- 添加客服体验数据 -->
+	<insert id="saveUserExperience">
+		insert into user_experience (
+			name,
+			phone,
+			create_time,
+			gym_addr,
+			introduce_person
+		) values (
+			#{name},
+			#{phone},
+			now(),
+			#{gymAddr},
+			#{introducePerson}
+		)
+	</insert>
+	
+	<!-- 删除客服体验数据 -->
+	<delete id="delUserExperience">
+		delete from user_experience where id = #{value}
+	</delete>
+
+</mapper>

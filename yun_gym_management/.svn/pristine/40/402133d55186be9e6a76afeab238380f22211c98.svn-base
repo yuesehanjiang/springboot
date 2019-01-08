@@ -1,0 +1,15 @@
+package com.yun.service;
+
+import java.util.List;
+
+import com.yun.pojo.Course;
+
+public interface CourseService {
+   //新增课程
+	void courseadd(Course course);
+   
+	
+	//根据门店查找 课程表
+	Course courfind(Course course);
+
+}

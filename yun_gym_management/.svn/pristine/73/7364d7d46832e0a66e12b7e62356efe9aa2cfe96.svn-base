@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yun.mapper.UserFaceMapper">
+	
+	<insert id="saveUserFace">
+        insert into user_face (
+            open_id,
+            gym_addr,
+            face,
+            face_img,
+            create_time
+        ) values (
+            #{openId},
+            #{gymAddr},
+            #{face},
+            #{faceImg}
+            now()
+        )
+    </insert>
+    
+    
+     <select id="checkUserFace" resultType="int">
+        SELECT
+            COUNT(*)
+        FROM
+            user_face
+        WHERE
+            gym_addr = #{gymAddr} and open_id = #{openId};
+    </select>
+    
+    
+    <update id="updateUserFace">
+        update user_face
+        <set>
+            <if test="faceImg != null and faceImg != ''">
+                face_img = #{faceImg},
+            </if>
+            <if test="face != null and face != ''">
+                face = #{face}
+            </if>
+        </set>
+       where open_id = #{openId} and gym_addr = #{gymAddr}
+    </update>
+    
+     <!-- 根据gymAddr获取机器码列表-->
+    <select id="getMachineListByGymAddr" resultType="String">
+        SELECT
+            machine_code
+        FROM
+            machine
+        WHERE
+            gym_addr = #{gymAddr}
+    </select>
+
+</mapper>

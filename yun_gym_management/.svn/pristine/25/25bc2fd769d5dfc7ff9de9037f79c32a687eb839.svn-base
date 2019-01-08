@@ -1,0 +1,77 @@
+package com.yun.utils;
+
+public class ParameterUtil {
+	private String keyword;		// 关键字
+	private String pageNum;		// 页数
+	private String pageSize;	// 页码
+	private String startTime;	// 开始时间
+	private String endTime;		// 结束时间
+	private String dateTime;	// 日期
+	private String gymAddr;		// 门店id
+	private String sex;			// 性别
+	
+	public String getSex() {
+		return sex;
+	}
+
+	public void setSex(String sex) {
+		this.sex = sex;
+	}
+
+	public String getGymAddr() {
+		return gymAddr;
+	}
+
+	public void setGymAddr(String gymAddr) {
+		this.gymAddr = gymAddr;
+	}
+
+	public String getDateTime() {
+		return dateTime;
+	}
+
+	public void setDateTime(String dateTime) {
+		this.dateTime = dateTime;
+	}
+
+	public String getKeyword() {
+		return keyword;
+	}
+
+	public void setKeyword(String keyword) {
+		this.keyword = keyword;
+	}
+
+	public String getPageNum() {
+		return pageNum;
+	}
+
+	public void setPageNum(String pageNum) {
+		this.pageNum = pageNum;
+	}
+
+	public String getPageSize() {
+		return pageSize;
+	}
+
+	public void setPageSize(String pageSize) {
+		this.pageSize = pageSize;
+	}
+
+	public String getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(String startTime) {
+		this.startTime = startTime;
+	}
+
+	public String getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(String endTime) {
+		this.endTime = endTime;
+	}
+
+}

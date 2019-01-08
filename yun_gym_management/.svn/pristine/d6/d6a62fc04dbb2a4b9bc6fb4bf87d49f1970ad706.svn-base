@@ -1,0 +1,8 @@
+package com.yun.mapper;
+
+
+public interface UserFaceMapper {
+
+	
+	
+}

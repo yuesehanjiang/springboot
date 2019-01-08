@@ -1,0 +1,19 @@
+package com.yun.mapper;
+
+import java.util.List;
+
+import com.yun.pojo.Course;
+
+//课程表
+public interface CourseMapper {
+	// 新增课程表
+	void courseadd(Course course);
+
+	// 删除课程表
+	void delCourseByGymArr(Course course);
+	
+	
+     //根据门店找课程
+	Course courfind(Course course);
+
+}

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yun.mapper.ClubMapper">
+	
+	<!-- 添加新门店信息 -->
+    <insert id="saveClubInfo">
+        insert into club (
+            club_id,
+            club_pid,
+            club_name,
+            gym_addr,
+            address,
+            gym_logo,
+            company_name,
+            contact,
+            gym_about
+        ) values (
+            #{clubId},
+            #{clubPid},
+            #{clubName},
+            #{gymAddr},
+            #{address},
+            #{gymLogo},
+            #{companyName},
+            #{contact},
+            #{gymAbout}
+        )
+    </insert>
+	
+
+</mapper>

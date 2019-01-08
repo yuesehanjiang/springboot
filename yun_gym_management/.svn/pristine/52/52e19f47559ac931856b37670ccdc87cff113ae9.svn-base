@@ -1,0 +1,165 @@
+package com.yun.service.impl;
+
+import java.util.HashMap;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.yun.constant.OSSConstant;
+import com.yun.constant.ResponseMessage;
+import com.yun.mapper.UserShowMapper;
+import com.yun.pojo.UserShow;
+import com.yun.service.UserShowService;
+import com.yun.utils.ImageCheckUtils;
+import com.yun.utils.OSSUtil;
+import com.yun.utils.ParameterUtil;
+import com.yun.utils.ServerResponse;
+import com.yun.utils.StringUtils;
+
+@Service
+@Transactional
+public class UserShowServiceImpl implements UserShowService {
+
+	@Autowired
+	private UserShowMapper userShowMapper;
+	
+	/**
+	 * 新增会员秀
+	 */
+	@Override
+	public HashMap<String, Object> saveUserShow(UserShow userShow, MultipartFile file) {
+		if(StringUtils.isHasEmpty(userShow.getGymAddr(), userShow.getNickname(), 
+				userShow.getSex(), userShow.getSignature())){
+			return ServerResponse.build("202", ResponseMessage.paramIsNull);
+		}
+		String fileName = null;
+		String filePath = null;
+		try {
+			fileName = StringUtils.replaceStr(file.getOriginalFilename());
+			filePath = fileName;
+			fileName = java.net.URLEncoder.encode(fileName, "utf-8");
+			String imagePath = "https://"+OSSConstant.bucketName+".oss-cn-shenzhen.aliyuncs.com/"+OSSConstant.stagingDirectory+"/" + fileName;
+			// 获取输出流
+			OSSUtil.uploadObjectOSS(file, ""+OSSConstant.bucketName+"", ""+OSSConstant.stagingDirectory+"/");
+			int checkUrlImage = ImageCheckUtils.checkUrlImage(imagePath);
+			if(checkUrlImage != 0){		// 图片审核失败
+				OSSUtil.deleteFile(OSSConstant.bucketName, ""+OSSConstant.stagingDirectory+"", filePath);
+				return ServerResponse.build("203", "图片审核失败!");
+			}
+			int checkContent = ImageCheckUtils.checkContent(userShow.getSignature());
+			if(checkContent != 0){
+				return ServerResponse.build("203", "个人签名审核失败!");
+			}
+			String imagePath2 = "https://"+OSSConstant.bucketName+".oss-cn-shenzhen.aliyuncs.com/"+OSSConstant.userShowImageFold+"/" + fileName;
+			OSSUtil.uploadObjectOSS(file, ""+OSSConstant.bucketName+"", ""+OSSConstant.userShowImageFold+"/");
+			userShow.setImage(imagePath2);
+			int saveUserShow = userShowMapper.saveUserShow(userShow);
+			if(saveUserShow > 0){
+				OSSUtil.deleteFile(OSSConstant.bucketName, ""+OSSConstant.stagingDirectory+"", filePath);
+				return ServerResponse.build("200", ResponseMessage.success);
+			} else {
+				OSSUtil.deleteFile(OSSConstant.bucketName, ""+OSSConstant.stagingDirectory+"", filePath);
+				return ServerResponse.build("203", ResponseMessage.exception);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			OSSUtil.deleteFile(OSSConstant.bucketName, ""+OSSConstant.stagingDirectory+"", filePath);
+			return ServerResponse.build("203", ResponseMessage.exception);
+		}
+	}
+	
+	/**
+	 * 查询会员秀
+	 */
+	@Override
+	public HashMap<String, Object> listUserShowInfo(ParameterUtil parameterUtil) {
+		if(StringUtils.isHasEmpty(parameterUtil.getPageNum(), parameterUtil.getPageSize(), parameterUtil.getGymAddr())){
+			return ServerResponse.build("202", ResponseMessage.paramIsNull);
+		}
+		HashMap<String, Object> calculationPage = StringUtils.calculationPage(parameterUtil.getPageNum(), parameterUtil.getPageSize());
+		parameterUtil.setPageNum(calculationPage.get("pageNum")+"");
+		parameterUtil.setPageSize(calculationPage.get("pageSize")+"");
+		List<UserShow> listUserExperience = userShowMapper.listUserShowInfo(parameterUtil);
+		if(listUserExperience.size() < 1){
+			return ServerResponse.build("204", ResponseMessage.isNull);
+		}
+		int userShowCount = userShowMapper.getUserShowCount(parameterUtil);
+		return ServerResponse.build("200", ResponseMessage.success, listUserExperience, userShowCount, calculationPage.get("pNum")+"", parameterUtil.getPageSize());
+	}
+
+	/**
+	 * 删除会员秀
+	 */
+	@Override
+	public HashMap<String, Object> delUserShow(String value) {
+		if(StringUtils.isHasEmpty(value)){
+			return ServerResponse.build("202", ResponseMessage.paramIsNull);
+		}
+		int delUserShow = userShowMapper.delUserShow(value);
+		if(delUserShow > 0){
+			return ServerResponse.build("200", ResponseMessage.success);
+		} else {
+			return ServerResponse.build("203", ResponseMessage.exception);
+		}
+	}
+
+	/**
+	 * 查询要修改的会员秀
+	 */
+	@Override
+	public HashMap<String, Object> getUserShow(String value) {
+		if(StringUtils.isHasEmpty(value)){
+			return ServerResponse.build("202", ResponseMessage.paramIsNull);
+		}
+		UserShow userShow = userShowMapper.getUserShow(value);
+		if(userShow != null){
+			return ServerResponse.build("200", ResponseMessage.success, userShow);
+		} else {
+			return ServerResponse.build("202", ResponseMessage.paramIsNull);
+		}
+	}
+
+	/**
+	 * 修改会员秀
+	 */
+	@Override
+	public HashMap<String, Object> updateUserShow(UserShow userShow, MultipartFile file) {
+		if(StringUtils.isHasEmpty(userShow.getGymAddr(), userShow.getNickname(), 
+				userShow.getSex(), userShow.getSignature())){
+			return ServerResponse.build("202", ResponseMessage.paramIsNull);
+		}
+		String fileName = null;
+		String filePath = null;
+		try {
+			fileName = StringUtils.replaceStr(file.getOriginalFilename());
+			filePath = fileName;
+			fileName = java.net.URLEncoder.encode(fileName, "utf-8");
+			String imagePath = "https://"+OSSConstant.bucketName+".oss-cn-shenzhen.aliyuncs.com/"+OSSConstant.stagingDirectory+"/" + fileName;
+			// 获取输出流
+			OSSUtil.uploadObjectOSS(file, ""+OSSConstant.bucketName+"", ""+OSSConstant.stagingDirectory+"/");
+			int checkUrlImage = ImageCheckUtils.checkUrlImage(imagePath);
+			if(checkUrlImage != 0){		// 图片审核失败
+				OSSUtil.deleteFile(OSSConstant.bucketName, ""+OSSConstant.stagingDirectory+"", filePath);
+				return ServerResponse.build("203", "图片审核失败!");
+			}
+			int checkContent = ImageCheckUtils.checkContent(userShow.getSignature());
+			if(checkContent != 0){
+				return ServerResponse.build("203", "个人签名审核失败!");
+			}
+			String imagePath2 = "https://"+OSSConstant.bucketName+".oss-cn-shenzhen.aliyuncs.com/"+OSSConstant.userShowImageFold+"/" + fileName;
+			OSSUtil.uploadObjectOSS(file, ""+OSSConstant.bucketName+"", ""+OSSConstant.userShowImageFold+"/");
+			userShow.setImage(imagePath2);
+			userShowMapper.updateUserShow(userShow);
+			OSSUtil.deleteFile(OSSConstant.bucketName, ""+OSSConstant.stagingDirectory+"", filePath);
+			return ServerResponse.build("200", ResponseMessage.success);
+		} catch (Exception e) {
+			e.printStackTrace();
+			OSSUtil.deleteFile(OSSConstant.bucketName, ""+OSSConstant.stagingDirectory+"", filePath);
+			return ServerResponse.build("203", ResponseMessage.exception);
+		}
+	}
+
+}

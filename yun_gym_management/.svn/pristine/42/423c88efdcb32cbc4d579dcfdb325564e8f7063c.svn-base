@@ -1,0 +1,10 @@
+package com.yun.mapper;
+
+import com.yun.pojo.Club;
+
+public interface ClubMapper {
+
+    int saveClubInfo(Club club);
+
+    
+}

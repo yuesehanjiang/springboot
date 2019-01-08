@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yun.mapper.MachineMapper">
+    
+     <!-- 更新emmc_id-->
+    <update id="updateMachine">
+        update machine
+        <set>
+            emmc_id = #{emmc_id},
+            active_status = "1"
+        </set>
+        where machine_code = #{machineCode}
+    </update>
+    
+    
+    
+    
+    <!-- 根据gymAddr获取门店信息-->
+    <select id="getMachineInfo" resultType="Machine">
+       SELECT  a.`gym_addr` as gymAddr,
+               b.`url` as url,
+               c.`club_name` AS clubName
+       FROM machine a 
+       LEFT JOIN app_url b ON a.`gym_addr` = b.`gym_addr`
+       LEFT JOIN club c ON a.`gym_addr` = c.`gym_addr`
+       WHERE a.`machine_code` = #{machineCode};
+    </select>
+    
+    
+     <!-- 更新emmc_id-->
+    <update id="updateMachineForStatus">
+        update machine
+        <set>
+            status = "1"
+        </set>
+        where machine_code = #{machineCode}
+    </update>
+    
+
+</mapper>

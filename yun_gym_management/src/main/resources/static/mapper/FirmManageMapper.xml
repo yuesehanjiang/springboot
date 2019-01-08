@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.yun.mapper.FirmManageMapper">
+
+<!-- 添加企业信息信息 -->
+    <insert id="saveFirmInfo">
+        insert firm_manage  (
+            id,
+            firm_name,
+            firm_agent,
+            phone,
+            firm_address,
+            firm_account,
+            status,
+            create_time
+        ) values (
+            #{id},
+            #{firmName},
+            #{firmAgent},
+            #{phone},
+            #{firmAddress},
+            #{firmAccount},
+            #{status},
+            now()
+        )
+    </insert>
+    
+   
+   
+   <!-- 修改门店信息信息 -->
+    <update id="udpateFirmInfo">
+        update firm_manage
+        <set>
+            <if test="firmName != null and firmName != ''">
+                firm_name = #{firmName},
+            </if>
+            <if test="firmAgent != null and firmAgent != ''">
+                firm_agent = #{firmAgent},
+            </if>
+            <if test="phone != null and phone != ''">
+                phone = #{phone},
+            </if>
+            <if test="firmAddress != null and firmAddress != ''">
+                firm_address = #{firmAddress},
+            </if>
+            <if test="firmAccount != null and firmAccount != ''">
+                firm_account = #{firmAccount},
+            </if>
+             status = #{status},
+             update_time = now()
+        </set>
+        where id = #{id}
+    </update>
+    
+    <!-- 刪除教练 -->
+    <delete id="deleteFirmInfo">
+        delete from firm_manage where id = #{id}
+    </delete>
+    
+    <!-- 根据id获取企业信息-->
+    <select id="getFirmById" resultType="FirmManage">
+        SELECT
+            id,
+            firm_name,
+            firm_agent,
+            phone,
+            firm_address,
+            firm_account,
+            status,
+            create_time,
+            update_time
+        FROM
+            firm_manage
+        WHERE
+            firm_account = #{firmAccount}
+    </select>
+              
+
+</mapper>
