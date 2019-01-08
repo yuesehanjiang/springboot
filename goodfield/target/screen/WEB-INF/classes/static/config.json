@@ -1,8 +1,0 @@
-{
-"AccessKeyID" : "LTAIWQGZKmANXm07",
-"AccessKeySecret" : "fjGoMplT1GnRaDQHwOiOCT1aaUStFV",
-"RoleArn" : "acs:ram::1434210818854029:role/qizhiyun",
-"TokenExpireTime" : "3600",
-"PolicyFile": "/usr/local/tomcat/webapps/screen/WEB-INF/classes/static/all_policy.txt"
-}
-

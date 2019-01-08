@@ -1,8 +1,0 @@
-{
-"AccessKeyID" : "LTAIWQGZKmANXm07",
-"AccessKeySecret" : "fjGoMplT1GnRaDQHwOiOCT1aaUStFV",
-"RoleArn" : "acs:ram::1434210818854029:role/qizhiyun",
-"TokenExpireTime" : "3600",
-"PolicyFile":"I:/yunkang/goodfield/target/classes/static/all_policy.txt" 
-}
-
