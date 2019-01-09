@@ -1,5 +1,0 @@
-package com.yun.service;
-
-public interface UserFaceService {
-
-}
